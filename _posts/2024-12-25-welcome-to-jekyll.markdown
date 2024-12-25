@@ -1,6 +1,6 @@
 ---
 title:  "Welcome to Jekyll!"
-layout: post
+layout: posts
 categories: jekyll update
 ---
 
