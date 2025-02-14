@@ -27,5 +27,8 @@
     }
   },
 
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+
+  // install Julia after the container has finished building
+  "postCreateCommand": "curl -fsSL https://install.julialang.org | sh -s -- --yes --default-channel=lts && . /home/vscode/.bashrc"
 }

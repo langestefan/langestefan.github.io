@@ -73,4 +73,5 @@ COPY bin/entry_point.sh /tmp/entry_point.sh
 # set the ownership of the jekyll site directory to the non-root user
 # USER $USERNAME
 
+# start
 CMD ["/tmp/entry_point.sh"]
