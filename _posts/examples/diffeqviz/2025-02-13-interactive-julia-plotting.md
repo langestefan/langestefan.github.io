@@ -19,3 +19,9 @@ A simple script to display a static 3d visualization---a contour plot of a rando
 Test plot 2 outputs:
 
 {% include_relative sinc_surface.html %}
+
+## a third example
+
+Test plot 2 outputs:
+
+{% include_relative diffeq.html %}
