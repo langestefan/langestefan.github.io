@@ -9,11 +9,10 @@ function as_html(io, session, app)
 end
 
 session = Session(NoConnection(); asset_server=NoServer())
-sub = Session(session)
 
 # plot 1 - interactive plot
 open("_posts/examples/diffeqviz/contour.html", "w") do io
-    app = App() do session
+    app = App() do 
         markersize = Bonito.Slider(range(10, stop=100, length=100))
 
         # Create a scatter plot
@@ -28,51 +27,46 @@ end
 
 # plot 2 - volume plot
 open("_posts/examples/diffeqviz/sinc_surface.html", "w") do io
+    # create sub session
+    sub = Session(session)
+
     app = App(volume(rand(10, 10, 10)))
-    as_html(io, Session(session), app)
+    as_html(io, sub, app)
 end
 
 # plot 3 - differential equation
 open("_posts/examples/diffeqviz/diffeq.html", "w") do io
-    function lorenz(du, u, p, t)
-        x, y, z = u
-        sigma, rho, beta = p
-        du[1] = sigma * (y - x)
-        du[2] = x * (rho - z) - y
-        du[3] = x * y - beta * z
-    end
-
-    t_begin = 0.0
-    t_end = 100.0
-    tspan = (t_begin, t_end)
-    u_begin = [1.0, 0.0, 0.0]
-
+    # create sub session
     sub = Session(session)
 
     app = App() do
-        a = Bonito.Slider(range(1, stop=100, length=100))
+        # Create the slider
+        scale_slider = Slider(1:3)
 
-        # setup the ODE problem 
-        sol = lift(a) do a_val
-            p = [10.0, 28.0, a_val]
-            prob = ODEProblem(lorenz, u_begin, tspan, p)
-            solve(prob, Tsit5(), reltol = 1e-8, abstol = 1e-8)
-        end
+        # Define an observable that computes our data from the slider value.
+        states = lift(a -> (
+            x = sin.(a .* range(0, stop=10, length=100)),
+            y = cos.(a .* range(0, stop=10, length=100)),
+            z = range(0, stop=10, length=100)
+        ), scale_slider.value)
 
-        x = [x[1] for x in sol[][:]]
-        y = [x[2] for x in sol[][:]]
-        z = [x[3] for x in sol[][:]]
+        # Now “lift” each field out of the NamedTuple.
+        x_obs = lift(s -> s.x, states)
+        y_obs = lift(s -> s.y, states)
+        z_obs = lift(s -> s.z, states)
 
-        # lines!(ax, x, y, z) 
-        # fig, = surface(x, y, z)
-        fig, = meshscatter(x, y, z)
+        # Use these observables directly in the plot.
+        fig, ax, sc = meshscatter(x_obs, y_obs, z_obs; markersize = 1)
 
-        # Return the plot and the slider
-        return Bonito.record_states(sub, DOM.div(fig, a))
-    end;
+        # Return the plot and slider.
+        return Bonito.record_states(sub, DOM.div(fig, scale_slider))
+    end
 
     as_html(io, sub, app)
 end
+
+
+
 
 # # plot 3 - differential equation
 # open("_posts/examples/diffeqviz/diffeq.html", "w") do io
