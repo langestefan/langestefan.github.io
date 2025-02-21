@@ -34,59 +34,92 @@ open("_posts/examples/diffeqviz/sinc_surface.html", "w") do io
     as_html(io, sub, app)
 end
 
-# plot 3 - differential equation
 open("_posts/examples/diffeqviz/diffeq.html", "w") do io
-    # create sub session
+    # Create a Bonito session
     sub = Session(session)
 
-    function lorenz(du, u, p, t)
+    # Define the Lorenz system
+    function lorenz!(du, u, p, t)
         x, y, z = u
-        sigma, rho, beta = p
-        du[1] = sigma * (y - x)
-        du[2] = x * (rho - z) - y
-        du[3] = x * y - beta * z
+        σ, ρ, β = p
+        du[1] = σ * (y - x)
+        du[2] = x * (ρ - z) - y
+        du[3] = x * y - β * z
     end
 
-    t_begin = 0.0
-    t_end = 100.0
-    tspan = (t_begin, t_end)
-    u_begin = [1.0, 0.0, 0.0]
+    # Time span and initial condition
+    tspan = (0.0, 40.0)
+    u0    = [1.0, 0.0, 0.0]
 
+    # Default parameters (classic Lorenz with adjustable β)
+    σ₀ = 10.0
+    ρ₀ = 28.0
+    β₀ = 2.666
+    p₀ = (σ₀, ρ₀, β₀)
+
+    # Create the initial ODE solution
+    prob = ODEProblem(lorenz!, u0, tspan, p₀)
+    sol  = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8, saveat=0.05)
+
+    # Create a Makie figure with two rows:
+    # Row 1: 3D scene (LScene) with the Lorenz attractor.
+    # Row 2: A slider grid controlling the parameters.
+    fig = Figure(size = (900, 600))
+
+    # --- Row 1: 3D Plot ---
+    ax = LScene(fig[1, 1], show_axis=true)
+    lineplot = lines!(ax,
+        sol[1, :], sol[2, :], sol[3, :],
+        linewidth = 2
+    )
+
+    # --- Row 2: Slider Grid ---
+    sgrid = SliderGrid(fig[2, 1],
+        (label = "σ", range = LinRange(0, 20, 100)),
+        (label = "ρ", range = LinRange(0, 50, 100)),
+        (label = "β", range = LinRange(0, 10, 100))
+    )
+    σ_slider, ρ_slider, β_slider = sgrid.sliders
+
+    # Set the slider default values.
+    σ_slider.value[] = σ₀
+    ρ_slider.value[] = ρ₀
+    β_slider.value[] = β₀
+
+    # Function to re-solve the ODE and update the plot.
+    function update_plot!()
+        # Get the current parameter values from the sliders
+        σ = σ_slider.value[]
+        ρ = ρ_slider.value[]
+        β = β_slider.value[]
+        new_p = (σ, ρ, β)
+        new_prob = remake(prob, p = new_p)
+        new_sol  = solve(new_prob, Tsit5(), reltol=1e-8, abstol=1e-8, saveat=0.1)
+        # Update the line plot with the new solution
+        lineplot[1][] = Point3f0.(new_sol[1, :], new_sol[2, :], new_sol[3, :])
+    end
+
+    # Connect each slider’s observable to update_plot!
+    for slider in (σ_slider, ρ_slider, β_slider)
+        on(slider.value) do _
+            update_plot!()
+        end
+    end
+
+    # --- Bonito App ---
+    # Wrap the entire Makie figure (which includes the slider grid)
+    # in a recorded DOM container so that slider changes propagate.
     app = App() do
+        # By calling `Bonito.record_states` on the container,
+        # all reactive states (including slider values) are captured.
+        Bonito.record_states(sub, DOM.div(fig))
+    end
 
-        # create the slider
-        slider = Slider(1:6)
-
-        # map slider values to surface states
-        states = map(slider.value) do a_val
-            p = [10.0, 28.0, a_val]
-            prob = ODEProblem(lorenz, u_begin, tspan, p)
-            sol = solve(prob, Tsit5(), reltol = 1e-8, abstol = 1e-8, saveat=0.1)
-
-            x = [u[1] for u in sol.u]
-            y = [u[2] for u in sol.u]
-            z = [u[3] for u in sol.u]
-
-            return (x=x, y=y, z=z)
-        end   
-
-        # Now “lift” each field out of the NamedTuple.
-        x_obs = lift(s -> s.x, states)
-        y_obs = lift(s -> s.y, states)
-        z_obs = lift(s -> s.z, states)
-        
-
-        # create the figure
-        fig, = plot(x_obs, y_obs, z_obs; 
-            markersize=3.0, color=:blue
-        ) 
-    
-        # Return the plot and the slider
-        return Bonito.record_states(sub, DOM.div(fig, slider))
-    end;
-    
+    # Write the Bonito app to an HTML file.
     as_html(io, sub, app)
 end
+
+
 
 # # plot 3 - differential equation
 # open("_posts/examples/diffeqviz/diffeq.html", "w") do io
