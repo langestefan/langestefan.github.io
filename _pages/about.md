@@ -3,7 +3,7 @@ layout: about
 title: about
 permalink: /
 subtitle: 
-  <a href="https://www.tue.nl/en/research/research-groups/electrical-energy-systems">MSc in Electrical Engineering</a> • 
+  <a href="https://www.tue.nl/en/research/research-groups/electrical-energy-systems">Electrical Engineering</a> • 
   <a href="https://www.tue.nl/en/">Technische Universiteit Eindhoven</a>
 
 profile:
