@@ -1,5 +1,4 @@
 using Bonito, WGLMakie
-using DifferentialEquations
 
 output_file = "_posts/examples/diffeqviz/sinc_surface.html"
 
@@ -18,7 +17,7 @@ open("_posts/guides/interactive-blog/scatter.html", "w") do io
         scale_value = DOM.div("\\(s = \\)", markersize.value)
 
         # Create a scatter plot
-        fig, ax = meshscatter(rand(3, 100), markersize=markersize, figure=(; size=(600, 600)))
+        fig, ax = meshscatter(rand(3, 100), markersize=markersize, figure=(; size=(550, 550)))
         
         # Return the plot and the slider
         return Bonito.record_states(session, DOM.div(fig, scale_value, markersize))
@@ -26,6 +25,8 @@ open("_posts/guides/interactive-blog/scatter.html", "w") do io
     as_html(io, session, app)
     println(io, """</center>""")
 end
+
+using DifferentialEquations
 
 # open("_posts/examples/diffeqviz/contour.html", "w") do io
 #     app = App() do 

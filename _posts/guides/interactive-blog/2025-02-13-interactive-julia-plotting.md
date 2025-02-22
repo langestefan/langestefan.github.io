@@ -47,35 +47,15 @@ group all files for a specific post in a single folder. For this post, I created
 folder called `_posts/guides/interactive-blog/` and saved the script as `plots.jl`. As
 a preliminary example we will just plot some random data.
 
-```julia
-using Bonito, WGLMakie
-using DifferentialEquations
+{% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="1" end="10" %}
 
-output_file = "_posts/examples/diffeqviz/sinc_surface.html"
+And the plotting code:
+{% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="13" end="27" %}
 
-function as_html(io, session, app)
-    dom = Bonito.session_dom(session, app)
-    show(io, MIME"text/html"(), Bonito.Pretty(dom))
-end
-
-session = Session(NoConnection(); asset_server=NoServer())
-
-# plot 1 - random scatter plot
-open("_posts/guides/interactive-blog/scatter.html", "w") do io
-    println(io, """<center>""")
-    app = App() do 
-        markersize = Bonito.Slider(range(0.01, stop=0.1, length=5))
-        scale_value = DOM.div("\\(s = \\)", markersize.value)
-
-        # Create a scatter plot
-        fig, ax = meshscatter(rand(3, 100), markersize=markersize)
-        
-        # Return the plot and the slider
-        return Bonito.record_states(session, DOM.div(fig, scale_value, markersize))
-    end;
-    as_html(io, session, app)
-    println(io, """</center>""")
-end
+The script above creates a scatter plot with random data and saves it as `scatter.html`.
+Which we can then include in our blog post using the following liquid:
+```liquid
+{% raw %}{% include_relative scatter.html %}{% endraw %}
 ```
 
 {% alert warning %}
@@ -83,12 +63,6 @@ The HTML files created by `record_states` may be large, since it needs to record
 combinations of widget states. This could make your website less responsive. See the
 <a href="https://simondanisch.github.io/Bonito.jl/stable/api.html#Bonito.record_states-Tuple%7BSession,%20Hyperscript.Node%7D">documentation</a> for more information.
 {% endalert %}
-
-The script above creates a scatter plot with random data and saves it as `scatter.html`.
-Which we can then include in our blog post using the following liquid:
-```liquid
-{% raw %}{% include_relative scatter.html %}{% endraw %}
-```
 
 This will render the scatter plot where the liquid tag is placed:
 
@@ -103,3 +77,33 @@ the setup for any session that’s included afterwards. You’ll also need to fo
 order of rendering, since new dependencies get included in the session that first “sees” 
 that dependency.
 {% endalert %}
+
+## A DifferentialEquations.jl example
+
+Now for a more exciting example, we will use the 
+[DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/) package to calculate
+the trajectory of a soccer ball and use Makie.jl to visualize it. 
+
+We will start from a physical description of the problem. 
+## The trajectory of a soccer ball
+
+```c++
+int main(int argc, char const \*argv[])
+{
+    string myString;
+
+    cout << "input a string: ";
+    getline(cin, myString);
+    int length = myString.length();
+
+    char charArray = new char * [length];
+
+    charArray = myString;
+    for(int i = 0; i < length; ++i){
+        cout << charArray[i] << " ";
+    }
+
+    return 0;
+}
+```
+
