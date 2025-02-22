@@ -7,6 +7,7 @@ tags: julia interactive makie.jl wglmakie.jl bonito.jl plots
 categories: guides
 related_posts: false
 citation: true
+giscus_comments: true
 ---
 
 *Wouldn't it be cool to have 3D interactive visualizations inside blog posts?*
