@@ -49,7 +49,8 @@ a preliminary example we will just plot some random data.
 
 {% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="1" end="10" %}
 
-And the plotting code:
+And the code that generates the plot:
+
 {% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="13" end="27" %}
 
 The script above creates a scatter plot with random data and saves it as `scatter.html`.
@@ -82,28 +83,13 @@ that dependency.
 
 Now for a more exciting example, we will use the 
 [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/) package to calculate
-the trajectory of a soccer ball and use Makie.jl to visualize it. 
+the position of a soccer ball after giving it a kick and use [Makie.jl](https://docs.makie.org/stable/) 
+to visualize the resulting trajectory.
 
 We will start from a physical description of the problem. 
-## The trajectory of a soccer ball
 
-```c++
-int main(int argc, char const \*argv[])
-{
-    string myString;
+<div class="theorem-box" markdown="1">
+### The trajectory of a soccer ball
 
-    cout << "input a string: ";
-    getline(cin, myString);
-    int length = myString.length();
-
-    char charArray = new char * [length];
-
-    charArray = myString;
-    for(int i = 0; i < length; ++i){
-        cout << charArray[i] << " ";
-    }
-
-    return 0;
-}
-```
-
+Given a vector $v \in \mathbb{R}^n$ and a function $f: \mathbb{R}^n \to \mathbb{R}^m$,
+</div>

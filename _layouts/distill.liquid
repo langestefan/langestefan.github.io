@@ -10,7 +10,7 @@
         text-align: justify;
       }
     </style>
-    
+
     <!-- Distill js -->
     <script src="{{ '/assets/js/distillpub/template.v2.js' | relative_url }}"></script>
     <script src="{{ '/assets/js/distillpub/transforms.v2.js' | relative_url }}"></script>
@@ -101,6 +101,9 @@
 
       <d-appendix>
         <d-footnote-list></d-footnote-list>
+        {% if page.citation %}
+          {% include citation.liquid %}
+        {% endif %}
         <d-citation-list></d-citation-list>
       </d-appendix>
 

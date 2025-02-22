@@ -1,0 +1,14 @@
+.theorem-box {
+    font-family: 'TeX Gyre Termes', 'Times', serif;
+    overflow-x: "word-wrap";
+    word-wrap: break-word;
+    background-color: rgba(240, 243, 250, 0.3);
+    border: 2px solid rgba(50, 50, 53, 0.5);
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.theorem-box h3 {
+    margin-top: 0px;
+    padding: 0px;
+}
