@@ -9,8 +9,7 @@ related_posts: false
 citation: true
 ---
 
-The other day I was thinking, *wouldn't it be cool to have 3D interactive visualizations inside 
-blog posts?* 
+*Wouldn't it be cool to have 3D interactive visualizations inside blog posts?*
 
 From an engagement perspective this would be awesome. Instead of serving static
 images, we could have interactive plots that the reader can play around with. Potentially
@@ -22,7 +21,7 @@ So naturally, I thought to myself "I can't be the first person to think of this"
 ofcourse I wasn't. I found [this great blog post by Aaron](https://aarontrowbridge.github.io/posts/interactive-julia-plotting/)
 which provides a step-by-step guide on how to create interactive plots on a web page using
 [WGLMakie.jl](https://github.com/MakieOrg/Makie.jl/tree/master/WGLMakie), the web-based
-backend for the Makie.jl plotting library. 
+backend for the [Makie.jl](https://docs.makie.org/stable/) plotting library. 
 
 Aaron's blog post is now 4 years old and the method described there unfortunately no 
 longer works. I was determined, but since I barely know what HTML is I needed a little help. 
@@ -34,7 +33,7 @@ I got [a response from Simon Danisch](https://discourse.julialang.org/t/exportin
 
 {% alert note %}
 Besides WGLMakie.jl we will also need <a href="https://github.com/SimonDanisch/Bonito.jl">Bonito.jl</a>
-to create the HTML descriptions, which will enable us to embed the plots in our blog posts.
+to create the HTML descriptions, which will enable us to embed the plot in a blog post.
 {% endalert %}
 
 ## A first example
@@ -79,15 +78,19 @@ open("_posts/guides/interactive-blog/scatter.html", "w") do io
 end
 ```
 
+{% alert warning %}
+The HTML files created by `record_states` may be large, since it needs to record all 
+combinations of widget states. This could make your website less responsive. See the
+<a href="https://simondanisch.github.io/Bonito.jl/stable/api.html#Bonito.record_states-Tuple%7BSession,%20Hyperscript.Node%7D">documentation</a> for more information.
+{% endalert %}
+
 The script above creates a scatter plot with random data and saves it as `scatter.html`.
 Which we can then include in our blog post using the following liquid:
 ```liquid
-{% raw %}
-{% include_relative scatter.html %}
-{% endraw %}
+{% raw %}{% include_relative scatter.html %}{% endraw %}
 ```
 
-This will render the scatter plot in the blog post where the liquid tag is placed:
+This will render the scatter plot where the liquid tag is placed:
 
 {% include_relative scatter.html %}
 
