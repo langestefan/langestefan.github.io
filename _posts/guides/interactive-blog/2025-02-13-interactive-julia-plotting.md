@@ -30,8 +30,12 @@ I found out yet again how great, supportive and helpful the Julia community is. 
 posting on the [Julia Discourse](https://discourse.julialang.org/)
 I got [a response from Simon Danisch](https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan) who is the creator of Makie.jl. 
 
-Besides WGLMakie.jl we will also need [Bonito.jl](https://github.com/SimonDanisch/Bonito.jl)
+
+
+{% alert note %}
+Besides WGLMakie.jl we will also need <a href="https://github.com/SimonDanisch/Bonito.jl">Bonito.jl</a>
 to create the HTML descriptions, which will enable us to embed the plots in our blog posts.
+{% endalert %}
 
 ## A first example
 
@@ -89,12 +93,10 @@ This will render the scatter plot in the blog post where the liquid tag is place
 
 Cool right? Try moving the slider to change the size of the markers. You can also
 click and drag to rotate the plot.
-> IMPORTANT: 
-> We have to pay special attention to the `session` object. The first session will include 
-> the setup for any session that’s included afterwards. You’ll also need to follow  the 
-> order of rendering, since new dependencies get included in the session that first “sees” 
-> that dependency.
 
-{% alert tip %}
-This is a tip!
+{% alert warning %}
+We have to pay special attention to the `session` object. The first session will include 
+the setup for any session that’s included afterwards. You’ll also need to follow  the 
+order of rendering, since new dependencies get included in the session that first “sees” 
+that dependency.
 {% endalert %}
