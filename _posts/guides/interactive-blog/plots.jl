@@ -18,7 +18,7 @@ open("_posts/guides/interactive-blog/scatter.html", "w") do io
         scale_value = DOM.div("\\(s = \\)", markersize.value)
 
         # Create a scatter plot
-        fig, ax = meshscatter(rand(3, 100), markersize=markersize)
+        fig, ax = meshscatter(rand(3, 100), markersize=markersize, figure=(; size=(600, 600)))
         
         # Return the plot and the slider
         return Bonito.record_states(session, DOM.div(fig, scale_value, markersize))

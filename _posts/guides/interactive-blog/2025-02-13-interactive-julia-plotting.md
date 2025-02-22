@@ -1,11 +1,12 @@
 ---
-layout: post
+layout: distill
 title: Creating Interactive Blog Posts with WGLMakie.jl
 date: 2025-02-13 19:35:00+0100
 description: A tutorial on how to add interactive Makie.jl plots to your blog
 tags: julia interactive makie.jl wglmakie.jl bonito.jl plots
 categories: guides
 related_posts: false
+citation: true
 ---
 
 The other day I was thinking, *wouldn't it be cool to have 3D interactive visualizations inside 
@@ -88,3 +89,12 @@ This will render the scatter plot in the blog post where the liquid tag is place
 
 Cool right? Try moving the slider to change the size of the markers. You can also
 click and drag to rotate the plot.
+> IMPORTANT: 
+> We have to pay special attention to the `session` object. The first session will include 
+> the setup for any session that’s included afterwards. You’ll also need to follow  the 
+> order of rendering, since new dependencies get included in the session that first “sees” 
+> that dependency.
+
+{% alert tip %}
+This is a tip!
+{% endalert %}
