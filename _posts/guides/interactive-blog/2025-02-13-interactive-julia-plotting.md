@@ -26,7 +26,7 @@ backend for the Makie.jl plotting library.
 Aaron's blog post is now 4 years old and the method described there unfortunately no 
 longer works. I was determined, but since I barely know what HTML is I needed a little help. 
 I found out yet again how great, supportive and helpful the Julia community is. After 
-posting on the [Julia Discourse](https://discourse.julialang.org/t/creating-interactive-blog-posts-with-wglmakie-jl/74184)
+posting on the [Julia Discourse](https://discourse.julialang.org/)
 I got [a response from Simon Danisch](https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan) who is the creator of Makie.jl. 
 
 Besides WGLMakie.jl we will also need [Bonito.jl](https://github.com/SimonDanisch/Bonito.jl)
