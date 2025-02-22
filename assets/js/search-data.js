@@ -37,11 +37,11 @@ ninja.data = [{
           handler: () => {
             window.location.href = "/repositories/";
           },
-        },{id: "post-a-post-with-interactive-plots",
+        },{id: "post-creating-interactive-blog-posts-with-wglmakie-jl",
       
-        title: "a post with interactive plots",
+        title: "Creating Interactive Blog Posts with WGLMakie.jl",
       
-      description: "an example of a an interactive blog post with makie plots",
+      description: "A tutorial on how to add interactive Makie.jl plots to your blog",
       section: "Posts",
       handler: () => {
         
