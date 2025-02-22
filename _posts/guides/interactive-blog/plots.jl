@@ -14,7 +14,7 @@ session = Session(NoConnection(); asset_server=NoServer())
 open("_posts/guides/interactive-blog/scatter.html", "w") do io
     println(io, """<center>""")
     app = App() do 
-        markersize = Bonito.Slider(range(0.01, stop=0.1, length=5))
+        markersize = Bonito.Slider(range(0.01, stop=0.11, length=6))
         scale_value = DOM.div("\\(s = \\)", markersize.value)
 
         # Create a scatter plot
