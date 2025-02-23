@@ -30,8 +30,6 @@ I found out yet again how great, supportive and helpful the Julia community is. 
 posting on the [Julia Discourse](https://discourse.julialang.org/)
 I got [a response from Simon Danisch](https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan) who is the creator of Makie.jl. 
 
-
-
 {% alert note %}
 Besides WGLMakie.jl we will also need <a href="https://github.com/SimonDanisch/Bonito.jl">Bonito.jl</a>
 to create the HTML descriptions, which will enable us to embed the plot in a blog post.
@@ -87,10 +85,34 @@ Now for a more exciting example, we will use the
 the position of a soccer ball after giving it a kick and use [Makie.jl](https://docs.makie.org/stable/) 
 to visualize the resulting trajectory.
 
-We will start from a physical description of the problem. 
+We will start from a physical description of the problem. This description is derived
+from Newton's second law of motion, which states that the acceleration of an object is
+directly proportional to the net forces acting on it. An excellent summary of the 
+physics involved can be found in a series of blog posts by Hugo, namely [Bend it like Newton: curves in football](http://chalkdustmagazine.com/blog/bend-it-like-newton-curves-in-football/) and [The maths behind a chip goal](https://chalkdustmagazine.com/blog/the-maths-behind-a-chip-goal/).
+
+<div style="margin-top: 20px; margin-bottom: -100px;"><center>
+<svg viewBox="0 0 250 250">
+  {% include_relative soccerball.svg %}
+</svg></center></div>
 
 <div class="theorem-box" markdown="1">
 ### The trajectory of a soccer ball
 
-Given a vector $v \in \mathbb{R}^n$ and a function $f: \mathbb{R}^n \to \mathbb{R}^m$,
+The position of a soccer ball in three dimensions can be described by a vector 
+$\vec{x} = [x, y, z]^T$. 
+
+Newton's second law of motion relates the acceleration of the ball to the forces acting
+on it. Mathematically, this can be written as:
+
+$$
+\begin{equation}
+    m \frac{d^2 \vec{x}}{dt^2} = \vec{F_G} + \vec{F_D} + \vec{F_L}
+\end{equation}
+$$
+
+Where we consider the gravitational force $\vec{F_G}$, the drag force $\vec{F_D}$ and the
+lift force $\vec{F_L}$. We are interested in solving this equation for $\vec{x}$ because
+that will give us the position of the ball at any given time. $m$ is the mass of the ball.
 </div>
+
+

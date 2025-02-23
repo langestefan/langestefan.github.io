@@ -28,6 +28,26 @@ end
 
 using DifferentialEquations
 
+# struct to hold problem constants
+struct SoccerConst
+    m::Float64 # mass of the ball
+    g::Float64 # acceleration due to gravity
+    r::Float64 # radius of the ball
+    ρ::Float64 # density of the air
+    C_L::Float64 # lift coefficient
+    C_D::Float64 # drag coefficient
+end
+
+# inital conditions
+struct SoccerIC
+    x::Float64 # initial x position
+    y::Float64 # initial y position
+    z::Float64 # initial z position
+    v_x::Float64 # initial x velocity
+    v_y::Float64 # initial y velocity
+    v_z::Float64 # initial z velocity
+end
+
 # open("_posts/examples/diffeqviz/contour.html", "w") do io
 #     app = App() do 
 #         markersize = Bonito.Slider(range(10, stop=100, length=100))
