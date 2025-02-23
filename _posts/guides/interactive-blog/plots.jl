@@ -1,6 +1,6 @@
 using Bonito, WGLMakie
 
-output_file = "_posts/examples/diffeqviz/sinc_surface.html"
+output_folder = "_posts/guides/interactive-blog/"
 
 function as_html(io, session, app)
     dom = Bonito.session_dom(session, app)
@@ -10,14 +10,14 @@ end
 session = Session(NoConnection(); asset_server=NoServer())
 
 # plot 1 - random scatter plot
-open("_posts/guides/interactive-blog/scatter.html", "w") do io
+open(output_folder * "scatter.html", "w") do io
     println(io, """<center>""")
     app = App() do 
-        markersize = Bonito.Slider(range(0.01, stop=0.11, length=6))
+        markersize = Bonito.Slider(range(0.01, stop=0.11, length=6), value=0.07)
         scale_value = DOM.div("\\(s = \\)", markersize.value)
 
         # Create a scatter plot
-        fig, ax = meshscatter(rand(3, 100), markersize=markersize, figure=(; size=(550, 550)))
+        fig, ax = meshscatter(rand(3, 100), markersize=markersize, figure=(; size=(500, 500)))
         
         # Return the plot and the slider
         return Bonito.record_states(session, DOM.div(fig, scale_value, markersize))
@@ -26,27 +26,36 @@ open("_posts/guides/interactive-blog/scatter.html", "w") do io
     println(io, """</center>""")
 end
 
-using DifferentialEquations
-
-# struct to hold problem constants
-struct SoccerConst
-    m::Float64 # mass of the ball
-    g::Float64 # acceleration due to gravity
-    r::Float64 # radius of the ball
-    ρ::Float64 # density of the air
-    C_L::Float64 # lift coefficient
-    C_D::Float64 # drag coefficient
+# plot 2 - volume plot
+open(output_folder * "volume.html", "w") do io
+    sub = Session(session)
+    app = App(volume(rand(10, 10, 10), figure=(; size=(500, 500))))
+    as_html(io, sub, app)
 end
 
-# inital conditions
-struct SoccerIC
-    x::Float64 # initial x position
-    y::Float64 # initial y position
-    z::Float64 # initial z position
-    v_x::Float64 # initial x velocity
-    v_y::Float64 # initial y velocity
-    v_z::Float64 # initial z velocity
-end
+# plot 3 - differential equation
+
+# using DifferentialEquations
+
+# # struct to hold problem constants
+# struct SoccerConst
+#     m::Float64 # mass of the ball
+#     g::Float64 # acceleration due to gravity
+#     r::Float64 # radius of the ball
+#     ρ::Float64 # density of the air
+#     C_L::Float64 # lift coefficient
+#     C_D::Float64 # drag coefficient
+# end
+
+# # inital conditions
+# struct SoccerIC
+#     x::Float64 # initial x position
+#     y::Float64 # initial y position
+#     z::Float64 # initial z position
+#     v_x::Float64 # initial x velocity
+#     v_y::Float64 # initial y velocity
+#     v_z::Float64 # initial z velocity
+# end
 
 # open("_posts/examples/diffeqviz/contour.html", "w") do io
 #     app = App() do 
