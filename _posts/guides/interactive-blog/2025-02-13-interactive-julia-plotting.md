@@ -25,10 +25,11 @@ which provides a step-by-step guide on how to create interactive plots on a web 
 backend for the [Makie.jl](https://docs.makie.org/stable/) plotting library. 
 
 Aaron's blog post is now 4 years old and the method described there unfortunately no 
-longer works. I was determined, but since I barely know what HTML is I needed a little help. 
-I found out yet again how great, supportive and helpful the Julia community is. After 
-posting on the [Julia Discourse](https://discourse.julialang.org/)
-I got [a response from Simon Danisch](https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan) who is the creator of Makie.jl. 
+longer works. I was determined, but I needed a little help, and I found out again how 
+supportive the Julia community is. 
+[Simon Danisch](https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan) 
+who is the creator of Makie.jl, provided guidance on how to set things up and this blog 
+post is a result of that.
 
 {% alert note %}
 Besides WGLMakie.jl we will also need <a href="https://github.com/SimonDanisch/Bonito.jl">Bonito.jl</a>
@@ -36,10 +37,6 @@ to create the HTML descriptions, which will enable us to embed the plot in a blo
 {% endalert %}
 
 ## A first example
-
-This blog post, which can be read as a tutorial or recipe, is a direct translation from 
-Simon's response into a working example. I hope it helps you to create interactive plots
-for your blog posts.
 
 First, we need a location to store the script that generates our plots. I prefer to 
 group all files for a specific post in a single folder. For this post, I created a 
@@ -132,7 +129,8 @@ $\vec{x}(t)$.
 There are a bunch of interesting questions we can ask in this general problem context.
 A few that come to mind are:
 - How does the trajectory of the ball change when we change the initial velocity $\vec{v}_0$?
-- Given some initial velocity $\vec{v}_0$, what is the maximum horizontal distance the ball can travel?
+- Given some initial velocity $\vec{v}_0$, what is the angle of the kick that maximizes 
+  the horizontal distance the ball will travel?
 - Given (noisy) observations of a ball's trajectory, can we estimate what the initial 
   position $\vec{p}_0$ and velocity $\vec{v}_0$ were? Or even more interesting, can we
   predict where the ball will land while it is still in the air?
@@ -172,7 +170,7 @@ $$
 \end{equation}
 $$
 
-Where $C_L$ is the lift coefficient, $\theta$ is the angle of attack and $f(\theta)$ is a
+Where $C_L$ is the lift coefficient and $f(\theta)$ is a
 function that depends on the spin angle of the ball. Let's assume that the ball is spinning
 around the $z$-axis, then $f(\theta) = [-1, 1, 0]^T$ where we assume that the dependence
 on the angular velocity $\omega$ is already included in $C_L$.
@@ -193,15 +191,6 @@ constant $H = \frac{\rho A}{2m}$, which will simplify the equations.
 Using the fact that $\frac{dx}{dt} = v_x, \frac{dy}{dt} = v_y, \frac{dz}{dt} = v_z$ the 
 system of differential equations can then be written as:
 
-<!-- $$
-\begin{align}
-    H &= \frac{\rho A}{2m} \\
-    \left| \vec{v} \right| &= \sqrt{v_x^2 + v_y^2 + v_z^2}
-    % C_L &= \left| \vec{v} \right|^{-1} \omega r \\ % C_L &= \frac{\omega r}{\left| \vec{v} \right|}\\
-    % \omega &= \omega_0 \cdot \exp\left(-\frac{t}{\tau}\right)    
-\end{align}
-$$ -->
-
 $$
 \begin{align}
     \vec{a} &= -\left | \vec{v}\right | H      
@@ -214,20 +203,34 @@ $$
 $$
 
 The value of $C_L$ is usually derived from experiments and depends on the speed and 
-angular velocity of the ball. We will assume that $C_L$ takes the following form:
+angular velocity of the ball. We will assume that $C_L$ takes the following simplified 
+form:
 
 $$
 \begin{align}
     C_L &= \frac{\omega r}{\left| \vec{v} \right|}\\
-    \omega &= \omega_0 \cdot \exp\left(-\frac{t}{\tau}\right)
+    \omega &= \omega_0 \cdot \exp\left(-\frac{t}{7}\right)
 \end{align}
 $$
 
-Where $\omega_0$ is the initial angular velocity and $\tau$ is the time constant. We 
-will solve this system numerically to get the trajectory of the ball. 
+Where $\omega_0$ is the initial angular velocity just after the kick. We will solve this 
+system numerically to obtain the trajectory of the ball after kicking it.
 </div>
 
-Now we can finally start writing code! Which should be a breeze after because we have 
-access to [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/).
+For those playing along at home, a table with all problem constants is given below:
 
-{% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="30" end="50" %}
+| Symbol | Description | Value |
+|--------|-------------|-------|
+| $m$ | mass of the ball | 0.43 kg |
+| $g$ | acceleration due to gravity | 9.81 m/s$^2$ |
+| $\rho$ | air density | 1.225 kg/m$^3$ |
+| $A$ | cross-sectional area of the ball | 0.013 m$^2$ |
+| $C_D$ | drag coefficient | 0.2 |
+| $r$ | radius of the ball | 0.11 m |
+| $\omega_0$ | initial angular velocity | 88 rad/s |
+
+
+Now we can finally start writing code! Which should be a breeze because we have 
+access to [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/),
+a package that provides a high-level interface for solving differential equations. 
+
