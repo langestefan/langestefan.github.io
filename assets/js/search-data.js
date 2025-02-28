@@ -37,18 +37,7 @@ ninja.data = [{
           handler: () => {
             window.location.href = "/repositories/";
           },
-        },{id: "post-plotting-differential-equations-with-wglmakie-jl",
-      
-        title: "Plotting Differential Equations with WGLMakie.jl",
-      
-      description: "an example of a blog post with some code",
-      section: "Posts",
-      handler: () => {
-        
-          window.location.href = "/blog/2025/plotting-diffeqs/";
-        
-      },
-    },{id: "post-creating-interactive-blog-posts-with-wglmakie-jl",
+        },{id: "post-creating-interactive-blog-posts-with-wglmakie-jl",
       
         title: "Creating Interactive Blog Posts with WGLMakie.jl",
       
