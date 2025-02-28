@@ -55,13 +55,14 @@ open(output_folder * "diffeq.html", "w") do io
         prob = ODEProblem(lorenz!, u0, tspan)
         sol = solve(prob)
         
-        # sample Point3f data
-        data = [Point3f(sol(t)) for t in range(0, stop=100, length=10000)]
-
-        # plot using lines with colormap
-        fig = Figure(size=(500, 500))
-        lines(fig[1, 1], data, color = 1:10000, colormap = :plasma, transparency=true)
-        fig
+        fig, ax, plt = lines(
+            sol; idxs = (1, 2, 3), 
+            axis = (; type = LScene),
+            plotdensity = 10000, 
+            color = 1:10000, 
+            colormap = :plasma, 
+            transparency = true
+        )
     end
     as_html(io, sub, app)
     println(io, """</center>""")
