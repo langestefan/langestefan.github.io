@@ -15,7 +15,8 @@ giscus_comments: true
 Instead of just showing static images, you could let readers play around with interactive 
 plots—maybe to get a better handle on the data, or just for the fun of it. Since I 
 didn't want to depend on any backend services I am using static HTML files to host the 
-interactive plots.
+interactive plots. All code for this blog post 
+[is available on GitHub](https://github.com/langestefan/langestefan.github.io/tree/main/_posts/guides/interactive-blog).
 
 I figured I couldn't be the first to think of this, and I wasn't wrong. I found 
 [Aaron's blog post](https://aarontrowbridge.github.io/posts/interactive-julia-plotting/), 

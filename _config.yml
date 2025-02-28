@@ -2,13 +2,13 @@
 # Site settings
 # -----------------------------------------------------------------------------
 
-title: Hi!
+title: Charged by Numbers
 first_name: Stefan
 middle_name: de
 last_name: Lange
 contact_note:
 description: > # the ">" symbol means to ignore newlines until "footer_text:"
-  Writing about technology.
+  At the intersection of math, reneweable energy and physics.
 footer_text: 
 keywords: personal-website
 lang: en # the language of your site (for example: en, fr, cn, ru, etc.)
@@ -83,8 +83,8 @@ bing_site_verification: # out your bing-site-verification ID (Bing Webmaster)
 # Blog
 # -----------------------------------------------------------------------------
 
-blog_name: Reneweable Technology # blog_name will be displayed in your blog page
-blog_description: a personal reneweable energy technology blog
+blog_name: Charged by Numbers # blog_name will be displayed in your blog page
+blog_description: At the intersection of math, reneweable energy and physics.
 permalink: /blog/:year/:title/
 lsi: false # produce an index for related posts
 
@@ -93,7 +93,7 @@ pagination:
   enabled: true
 
 related_blog_posts:
-  enabled: true
+  enabled: false
   max_related: 5
 
 # Giscus comments (RECOMMENDED)
