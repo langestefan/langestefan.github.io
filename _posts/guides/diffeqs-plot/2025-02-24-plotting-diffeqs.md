@@ -7,6 +7,7 @@ tags: formatting code
 categories: guides
 citation: true
 giscus_comments: true
+published: false
 ---
 
 In this blog post we will walk through the process of visualizing [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/) solutions using [WGLMakie.jl](https://github.com/MakieOrg/Makie.jl/tree/master/WGLMakie).
