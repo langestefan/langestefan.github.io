@@ -2,7 +2,7 @@
 # Site settings
 # -----------------------------------------------------------------------------
 
-title: Charged by Numbers
+title: De Vonk
 first_name: Stefan
 middle_name: de
 last_name: Lange
@@ -83,7 +83,7 @@ bing_site_verification: # out your bing-site-verification ID (Bing Webmaster)
 # Blog
 # -----------------------------------------------------------------------------
 
-blog_name: Charged by Numbers # blog_name will be displayed in your blog page
+blog_name: De Vonk # blog_name will be displayed in your blog page
 blog_description: At the intersection of math, reneweable energy and physics.
 permalink: /blog/:year/:title/
 lsi: false # produce an index for related posts
