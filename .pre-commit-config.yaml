@@ -5,6 +5,18 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        name: 🧹 Remove trailing whitespace
       - id: end-of-file-fixer
+        name: 🧹 Ensure files end with a newline
       - id: check-yaml
+        name: 🐍 Validate YAML files
       - id: check-added-large-files
+        name: 🚫 Prevent adding large files
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: 💄 Format files with Prettier
+        language: system
+        types_or: [css, javascript, json, markdown, yaml, scss]
+        entry: npx prettier --write --ignore-unknown

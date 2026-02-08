@@ -101,15 +101,16 @@ We have seen how to create interactive plots using WGLMakie.jl and Bonito.jl. Th
 great way to engage your readers and make your blog posts more interactive. I hope you
 found this tutorial useful and that you will start adding interactive plots to your blog!
 
-
 {% alert note %}
 This blog was tested with:
+
 ```yaml
 Status `~/dev/projects/2026/langestefan.github.io/Project.toml`
-  [824d6782] Bonito v4.2.0
-  [5ae59095] Colors v0.13.1
-  [5789e2e9] FileIO v1.18.0
-  [1dea7af3] OrdinaryDiffEq v6.108.0
-  [276b4fcb] WGLMakie v0.13.8
+[824d6782] Bonito v4.2.0
+[5ae59095] Colors v0.13.1
+[5789e2e9] FileIO v1.18.0
+[1dea7af3] OrdinaryDiffEq v6.108.0
+[276b4fcb] WGLMakie v0.13.8
 ```
+
 {% endalert %}
