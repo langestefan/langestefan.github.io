@@ -9,7 +9,7 @@
 }
 
 /* Header and Content */
-.markdown-alert>.markdown-alert-title {
+.markdown-alert > .markdown-alert-title {
   display: flex;
   align-items: center;
   font-weight: bold;
@@ -17,7 +17,7 @@
   margin-bottom: 0.5em;
 }
 
-.markdown-alert>.pInfo {
+.markdown-alert > .pInfo {
   margin: 0;
   line-height: 1.4;
 }

@@ -9,7 +9,7 @@ last_name: Lange
 contact_note:
 description: > # the ">" symbol means to ignore newlines until "footer_text:"
   At the intersection of math, reneweable energy and physics.
-footer_text: 
+footer_text:
 keywords: personal-website
 lang: en # the language of your site (for example: en, fr, cn, ru, etc.)
 icon: ⚡ # the emoji used as the favicon (alternatively, provide image name in /assets/img/)

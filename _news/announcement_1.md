@@ -5,4 +5,4 @@ inline: true
 related_posts: false
 ---
 
-Launch of my new personal website! 
+Launch of my new personal website!

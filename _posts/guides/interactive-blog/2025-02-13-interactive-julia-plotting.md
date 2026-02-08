@@ -10,25 +10,25 @@ citation: true
 giscus_comments: true
 ---
 
-*Wouldn't it be cool to have 3D interactive visualizations right in your blog posts?*
+_Wouldn't it be cool to have 3D interactive visualizations right in your blog posts?_
 
-Instead of just showing static images, you could let readers play around with interactive 
-plots—maybe to get a better handle on the data, or just for the fun of it. Since I 
-didn't want to depend on any backend services I am using static HTML files to host the 
-interactive plots. All code for this blog post 
+Instead of just showing static images, you could let readers play around with interactive
+plots—maybe to get a better handle on the data, or just for the fun of it. Since I
+didn't want to depend on any backend services I am using static HTML files to host the
+interactive plots. All code for this blog post
 [is available on GitHub](https://github.com/langestefan/langestefan.github.io/tree/main/_posts/guides/interactive-blog).
 
-I figured I couldn't be the first to think of this, and I wasn't wrong. I found 
-[Aaron's blog post](https://aarontrowbridge.github.io/posts/interactive-julia-plotting/), 
-which walks you through creating interactive plots on a web page using 
-[WGLMakie.jl](https://github.com/MakieOrg/Makie.jl/tree/master/WGLMakie)—the web-based 
+I figured I couldn't be the first to think of this, and I wasn't wrong. I found
+[Aaron's blog post](https://aarontrowbridge.github.io/posts/interactive-julia-plotting/),
+which walks you through creating interactive plots on a web page using
+[WGLMakie.jl](https://github.com/MakieOrg/Makie.jl/tree/master/WGLMakie)—the web-based
 backend for the [Makie.jl](https://docs.makie.org/stable/) plotting library.
 
-Aaron's method is now about four years old, and sadly it doesn't work anymore. I was 
-determined to make it happen, so I reached out for help and, as usual, the Julia 
-community came through. 
-[Simon Danisch](https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan), 
-the creator of Makie.jl, shared some valuable tips on setting everything up and this blog 
+Aaron's method is now about four years old, and sadly it doesn't work anymore. I was
+determined to make it happen, so I reached out for help and, as usual, the Julia
+community came through.
+[Simon Danisch](https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan),
+the creator of Makie.jl, shared some valuable tips on setting everything up and this blog
 post is the result.
 
 {% alert note %}
@@ -38,8 +38,8 @@ to create the HTML descriptions, which will enable us to embed the plot in a blo
 
 ## A first example
 
-First, we need a location to store the script that generates our plots. I prefer to 
-group all files for a specific post in a single folder. For this post, I created a 
+First, we need a location to store the script that generates our plots. I prefer to
+group all files for a specific post in a single folder. For this post, I created a
 folder called `_posts/guides/interactive-blog/` and saved the script as `plots.jl`. As
 a preliminary example we will just plot some random data.
 
@@ -51,12 +51,13 @@ And the code that generates the plot:
 
 The script above creates a scatter plot with random data and saves it as `scatter.html`.
 Which we can then include in our blog post using the following liquid:
+
 ```liquid
 {% raw %}{% include_relative scatter.html %}{% endraw %}
 ```
 
 {% alert warning %}
-The HTML files created by `record_states` may be large, since it needs to record all 
+The HTML files created by `record_states` may be large, since it needs to record all
 combinations of widget states. This could make your website less responsive. See the
 <a href="https://simondanisch.github.io/Bonito.jl/stable/api.html#Bonito.record_states-Tuple%7BSession,%20Hyperscript.Node%7D">documentation</a> for more information.
 {% endalert %}
@@ -69,15 +70,15 @@ Cool right? Try moving the slider to change the size of the markers. You can als
 click and drag to rotate the plot.
 
 {% alert warning %}
-We have to pay special attention to the `session` object. The first session will include 
-the setup for any session that’s included afterwards. You’ll also need to follow  the 
-order of rendering, since new dependencies get included in the session that first “sees” 
+We have to pay special attention to the `session` object. The first session will include
+the setup for any session that’s included afterwards. You’ll also need to follow the
+order of rendering, since new dependencies get included in the session that first “sees”
 that dependency.
 {% endalert %}
 
 ## A volume plot
 
-To render multiple plots we need to use a `Subsession`, which skips uploading similar 
+To render multiple plots we need to use a `Subsession`, which skips uploading similar
 assets/data and setup. The sub session can be created by calling `Session(session)` with
 the parent session as an argument.
 
@@ -87,7 +88,7 @@ the parent session as an argument.
 
 ## Bonus: Plotting a Differential Equation
 
-Let's plot a differential equation using the [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/) 
+Let's plot a differential equation using the [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/)
 package. We will solve the Lorenz system of differential equations and plot the result.
 
 {% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="39" end="68" %}
