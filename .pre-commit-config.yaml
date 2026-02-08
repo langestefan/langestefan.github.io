@@ -12,14 +12,3 @@ repos:
         name: 🐍 Validate YAML files
       - id: check-added-large-files
         name: 🚫 Prevent adding large files
-
-  - repo: local
-    hooks:
-      - id: prettier
-        name: 💄 Format files with Prettier
-        language: node
-        entry: prettier --write --ignore-unknown
-        types_or: [css, javascript, json, markdown, yaml, scss]
-        additional_dependencies:
-          - "prettier@3.1.1"
-          - "@shopify/prettier-plugin-liquid@1.4.0"
