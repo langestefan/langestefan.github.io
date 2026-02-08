@@ -91,7 +91,7 @@ the parent session as an argument.
 Let's plot a differential equation using the [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/)
 package. We will solve the Lorenz system of differential equations and plot the result.
 
-{% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="39" end="68" %}
+{% include_code file="_posts/guides/interactive-blog/plots.jl" lang="julia" start="39" end="69" %}
 
 {% include_relative diffeq.html %}
 
