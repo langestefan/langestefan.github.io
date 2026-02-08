@@ -12,13 +12,13 @@ session = Session(NoConnection(); asset_server=NoServer())
 # plot 1 - random scatter plot
 open(output_folder * "scatter.html", "w") do io
     println(io, """<center>""")
-    app = App() do 
+    app = App() do
         markersize = Bonito.Slider(range(0.01, stop=0.11, length=6), value=0.07)
         scale_value = DOM.div("\\(s = \\)", markersize.value)
 
         # Create a scatter plot
         fig, ax = meshscatter(rand(3, 100), markersize=markersize, figure=(; size=(500, 500)))
-        
+
         # Return the plot and the slider
         return Bonito.record_states(session, DOM.div(fig, scale_value, markersize))
     end;
@@ -48,19 +48,19 @@ u0 = [1.0; 0.0; 0.0]
 tspan = (0.0, 100.0)
 
 open(output_folder * "diffeq.html", "w") do io
-    sub = Session(session)    
+    sub = Session(session)
     println(io, """<center>""")
 
     app = App() do
         prob = ODEProblem(lorenz!, u0, tspan)
         sol = solve(prob)
-        
+
         fig, ax, plt = lines(
-            sol; idxs = (1, 2, 3), 
+            sol; idxs = (1, 2, 3),
             axis = (; type = LScene),
-            plotdensity = 10000, 
-            color = 1:10000, 
-            colormap = :plasma, 
+            plotdensity = 10000,
+            color = 1:10000,
+            colormap = :plasma,
             transparency = true
         )
     end

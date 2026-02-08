@@ -72,18 +72,18 @@ tspan = (0.0, 50.0)
 prob = SecondOrderODEProblem(projectile!, dx₀, x₀, tspan, p)
 sol = solve(prob, Tsit5())
 
-# load image 
+# load image
 # pitch = Makie.FileIO.load(expanduser("_posts/guides/interactive-blog/soccer_pitch.png"))
 
 using TestImages
 img = testimage("coffee.png")
 
-# soccer pitch size 
+# soccer pitch size
 x_size = (0, 68)
 y_size = (0, 105)
 z_size = (0, 20)
 
-# make a plot for the initial conditions and a field 
+# make a plot for the initial conditions and a field
 open(output_folder * "ode_ic.html", "w") do io
     sub = Session(session)
     app = App() do
@@ -98,7 +98,7 @@ open(output_folder * "ode_ic.html", "w") do io
         arrows!(ax, [p0], [v0], color=:red)
 
         # set picture as xy plane
-        # surface!(ax, [0, 0, 68, 68], [0, 105, 105, 0], [0, 0, 0, 0], 
+        # surface!(ax, [0, 0, 68, 68], [0, 105, 105, 0], [0, 0, 0, 0],
         #             color=:lightgreen, transparency=true)
         image!(ax, 0.. 68, 0 .. 105, rotr90(img); transformation=(:xy, 0.0))
 
