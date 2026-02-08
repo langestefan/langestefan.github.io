@@ -17,7 +17,7 @@ open(output_folder * "scatter.html", "w") do io
         scale_value = DOM.div("\\(s = \\)", markersize.value)
 
         # Create a scatter plot
-        fig, ax = meshscatter(rand(3, 100), markersize=markersize, figure=(; size=(500, 500)))
+        fig, ax = meshscatter(rand(3, 100), markersize=markersize.value, figure=(; size=(500, 500)))
 
         # Return the plot and the slider
         return Bonito.record_states(session, DOM.div(fig, scale_value, markersize))
@@ -36,7 +36,7 @@ open(output_folder * "volume.html", "w") do io
 end
 
 # plot 3 - diffeq plot
-using DifferentialEquations
+using OrdinaryDiffEq
 
 function lorenz!(du, u, p, t)
     du[1] = 10.0 * (u[2] - u[1])
