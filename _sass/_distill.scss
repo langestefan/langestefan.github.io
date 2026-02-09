@@ -5,6 +5,8 @@
 d-byline {
   border-top-color: var(--global-divider-color) !important;
   overflow: visible !important;
+  contain: none !important;
+  padding-bottom: 1.5rem !important;
 }
 
 d-byline h3 {
@@ -33,32 +35,6 @@ d-byline .github-source {
       background-color 0.15s ease,
       border-color 0.15s ease,
       color 0.15s ease;
-
-    // Light mode: slightly black bg
-    background-color: rgba(0, 0, 0, 0.08) !important;
-    border: 1px solid rgba(0, 0, 0, 0.2) !important;
-    color: var(--global-text-color) !important;
-
-    &:hover {
-      background-color: var(--global-hover-color) !important;
-      color: var(--global-bg-color) !important;
-      border-color: var(--global-hover-color) !important;
-    }
-  }
-}
-
-html[data-theme="dark"] d-byline .github-source,
-html.dark-mode d-byline .github-source {
-  .github-btn {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    color: var(--global-text-color) !important;
-
-    &:hover {
-      background-color: var(--global-hover-color) !important;
-      color: var(--global-bg-color) !important;
-      border-color: var(--global-hover-color) !important;
-    }
   }
 }
 
