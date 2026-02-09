@@ -12,3 +12,4 @@ node_modules/
 vendor
 .idea
 _posts/energy/day-ahead-prices-nl/data
+Manifest-**.toml

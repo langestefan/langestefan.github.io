@@ -18,5 +18,5 @@ repos:
       - id: prettier
         name: 💄 Ensuring files are prettier
         language: system
-        entry: npx prettier . --check
+        entry: npx prettier . --write
         pass_filenames: false

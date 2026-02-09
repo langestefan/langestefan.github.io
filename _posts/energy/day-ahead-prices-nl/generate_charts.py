@@ -17,6 +17,26 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 YEARS = list(range(2019, 2026))
 
 
+def create_color_gradient(hex_color, num_shades=5):
+    """Create a gradient of colors from a base hex color."""
+    # Convert hex to RGB
+    hex_color = hex_color.lstrip("#")
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+
+    # Create gradient by adjusting brightness
+    # Range from darkest to lightest
+    gradient = []
+    for i in range(num_shades):
+        # Factor ranges from 0.6 (darkest) to 1.0 (base color/lightest)
+        factor = 0.6 + (0.4 * i / (num_shades - 1))
+        new_r = min(255, int(r * factor))
+        new_g = min(255, int(g * factor))
+        new_b = min(255, int(b * factor))
+        gradient.append(f"#{new_r:02x}{new_g:02x}{new_b:02x}")
+
+    return gradient
+
+
 def load_and_process_data(year):
     """Load and aggregate price data for a given year."""
     filepath = DATA_DIR / f"jeroen_punt_nl_dynamische_stroomprijzen_jaar_{year}.csv"
@@ -178,6 +198,7 @@ def create_interactive_chart():
     output_file = OUTPUT_DIR / "day_ahead_prices_nl.html"
     fig.write_html(
         str(output_file),
+        include_plotlyjs="cdn",
         config={
             "displayModeBar": True,
             "displaylogo": False,
@@ -286,6 +307,7 @@ def create_yearly_comparison_chart():
     output_file = OUTPUT_DIR / "day_ahead_prices_nl_comparison.html"
     fig.write_html(
         str(output_file),
+        include_plotlyjs="cdn",
         config={
             "displayModeBar": True,
             "displaylogo": False,
@@ -293,6 +315,300 @@ def create_yearly_comparison_chart():
         },
     )
     print(f"Comparison chart saved to: {output_file}")
+
+    return fig
+
+
+def load_hourly_data(year):
+    """Load raw hourly price data for spread analysis."""
+    filepath = DATA_DIR / f"jeroen_punt_nl_dynamische_stroomprijzen_jaar_{year}.csv"
+
+    # Read CSV with semicolon separator
+    df = pd.read_csv(filepath, sep=";", parse_dates=["datum_nl"])
+
+    # Convert price column (replace comma with dot for decimal)
+    df["prijs_excl_belastingen"] = (
+        df["prijs_excl_belastingen"].str.replace(",", ".").astype(float)
+    )
+
+    # Extract date only (without time)
+    df["date"] = df["datum_nl"].dt.date
+    df["hour"] = df["datum_nl"].dt.hour
+    df["minute"] = df["datum_nl"].dt.minute
+
+    return df
+
+
+def calculate_daily_spreads(year, window_hours, smoothing_days=7):
+    """
+    Calculate daily price spreads for different time windows.
+
+    Spread = (average of most expensive X hours) - (average of cheapest X hours)
+    where X = window_hours
+    """
+    df = load_hourly_data(year)
+
+    # Number of 15-minute intervals in the window
+    window_size = window_hours * 4
+
+    # Calculate spread for each day
+    def calc_spread(group):
+        prices = group["prijs_excl_belastingen"].values
+        if len(prices) < window_size * 2:  # Need at least 2x window size for comparison
+            return None
+
+        # Sort prices to find most expensive and cheapest periods
+        sorted_prices = sorted(prices, reverse=True)
+
+        # Average of most expensive X hours (top window_size intervals)
+        avg_expensive = sum(sorted_prices[:window_size]) / window_size
+
+        # Average of cheapest X hours (bottom window_size intervals)
+        avg_cheap = sum(sorted_prices[-window_size:]) / window_size
+
+        # Spread is the difference
+        return avg_expensive - avg_cheap
+
+    daily_spreads = df.groupby("date").apply(calc_spread).reset_index()
+    daily_spreads.columns = ["date", "spread"]
+    daily_spreads = daily_spreads.dropna()  # Remove any days with insufficient data
+    daily_spreads["window_hours"] = window_hours
+
+    # Apply rolling mean to smooth the data
+    if smoothing_days > 1:
+        daily_spreads = daily_spreads.sort_values("date")
+        daily_spreads["spread"] = (
+            daily_spreads["spread"]
+            .rolling(window=smoothing_days, center=True, min_periods=1)
+            .mean()
+        )
+
+    return daily_spreads
+
+
+def create_spread_analysis_chart():
+    """Create line chart showing daily price spreads for different time windows."""
+    # Define time windows to analyze
+    time_windows = [1, 2, 4, 6, 8]
+    smoothing_periods = [1, 7, 30]  # Days for rolling mean
+
+    # Load data for all years, windows, and smoothing periods
+    all_data = {}
+    for smoothing_days in smoothing_periods:
+        all_year_data = {}
+        for year in YEARS:
+            try:
+                year_spreads = {}
+                for window in time_windows:
+                    spread_data = calculate_daily_spreads(year, window, smoothing_days)
+                    year_spreads[window] = spread_data
+                all_year_data[year] = year_spreads
+            except FileNotFoundError:
+                print(f"Warning: Data file for year {year} not found, skipping...")
+                continue
+        all_data[smoothing_days] = all_year_data
+
+    if not all_data:
+        print("Error: No data files found!")
+        return
+
+    # Create figure
+    fig = go.Figure()
+
+    # Base colors for different years
+    year_base_colors = {
+        2019: "#1f77b4",  # blue
+        2020: "#ff7f0e",  # orange
+        2021: "#2ca02c",  # green
+        2022: "#d62728",  # red
+        2023: "#9467bd",  # purple
+        2024: "#8c564b",  # brown
+        2025: "#e377c2",  # pink
+    }
+
+    # Create color gradients for each year (one for each time window)
+    year_color_gradients = {}
+    for year, base_color in year_base_colors.items():
+        year_color_gradients[year] = create_color_gradient(
+            base_color, num_shades=len(time_windows)
+        )
+
+    # Map window index to color for each year
+    window_to_gradient_index = {window: i for i, window in enumerate(time_windows)}
+
+    # Marker symbols for different years
+    year_markers = {
+        2019: "circle",
+        2020: "square",
+        2021: "diamond",
+        2022: "cross",
+        2023: "x",
+        2024: "triangle-up",
+        2025: "star",
+    }
+
+    # Line styles for different time windows
+    window_line_styles = {
+        1: "solid",
+        2: "dash",
+        4: "dot",
+        6: "dashdot",
+        8: "longdash",
+    }
+
+    # Add traces for each smoothing period, year, and time window
+    for smoothing_days in smoothing_periods:
+        all_year_data = all_data[smoothing_days]
+        for year in sorted(all_year_data.keys()):
+            for window in time_windows:
+                spread_data = all_year_data[year][window].copy()
+
+                # Convert date to datetime for proper x-axis
+                spread_data["original_date"] = pd.to_datetime(spread_data["date"])
+
+                # Normalize all years to same reference year (2024) for overlay comparison
+                spread_data["normalized_date"] = spread_data["original_date"].apply(
+                    lambda x: x.replace(year=2024)
+                )
+
+                # Get gradient color for this year and window
+                gradient_index = window_to_gradient_index[window]
+                window_color = year_color_gradients[year][gradient_index]
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=spread_data["normalized_date"],
+                        y=spread_data["spread"],
+                        name=f"{window}h",
+                        legendgroup=f"year_{year}",
+                        legendgrouptitle_text=f"{year}",
+                        mode="lines+markers",
+                        line=dict(
+                            color=window_color,
+                            width=2.5 if year == max(all_year_data.keys()) else 2,
+                            dash=window_line_styles.get(window, "solid"),
+                        ),
+                        marker=dict(
+                            symbol=year_markers.get(year, "circle"),
+                            size=4,
+                            color=window_color,
+                        ),
+                        opacity=0.85 if year == max(all_year_data.keys()) else 0.7,
+                        visible=(
+                            smoothing_days == 7
+                        ),  # Show 7-day smoothing by default
+                        showlegend=True,
+                        hovertemplate=f"<b>%{{x|%b %d}} ({year})</b><br>"
+                        + f"{window}-hour window<br>"
+                        + "Avg Spread: €%{y:.4f}/kWh<br>"
+                        + "<extra></extra>",
+                    )
+                )
+
+    # Create dropdown buttons for smoothing period selection
+    buttons = []
+    traces_per_smoothing = len(YEARS) * len(time_windows)
+
+    for i, smoothing_days in enumerate(smoothing_periods):
+        # Create visibility list
+        visibility = [False] * (len(smoothing_periods) * traces_per_smoothing)
+
+        # Make traces for this smoothing period visible
+        start_idx = i * traces_per_smoothing
+        for j in range(traces_per_smoothing):
+            visibility[start_idx + j] = True
+
+        smoothing_label = (
+            "No smoothing" if smoothing_days == 1 else f"{smoothing_days}-day avg"
+        )
+
+        buttons.append(
+            dict(
+                label=smoothing_label,
+                method="update",
+                args=[
+                    {"visible": visibility},
+                ],
+            )
+        )
+
+    # Update layout
+    fig.update_layout(
+        title=dict(
+            text="Daily Price Spread Analysis (All Years)<br><sub>Maximum spread within different time windows</sub>",
+            font=dict(size=20),
+        ),
+        xaxis=dict(
+            title="Date",
+            tickfont_size=14,
+            rangeslider=dict(
+                visible=True,
+                thickness=0.05,
+            ),
+            tickformat="%b",
+            dtick="M1",
+        ),
+        yaxis=dict(
+            title="Price Spread (€/kWh)",
+            tickfont_size=14,
+        ),
+        updatemenus=[
+            dict(
+                active=1,  # 7-day smoothing is default (index 1)
+                buttons=buttons,
+                direction="down",
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=1.0,
+                xanchor="right",
+                y=1.15,
+                yanchor="top",
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                bordercolor="#333",
+                borderwidth=2,
+            )
+        ],
+        annotations=[
+            dict(
+                text="Smoothing:",
+                showarrow=False,
+                x=1.0,
+                y=1.20,
+                xref="paper",
+                yref="paper",
+                align="right",
+                xanchor="right",
+                yanchor="top",
+                font=dict(size=14),
+            )
+        ],
+        height=700,
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.02,
+            tracegroupgap=20,
+            groupclick="toggleitem",
+        ),
+        hovermode="closest",
+        plot_bgcolor="rgba(240, 240, 240, 0.5)",
+        paper_bgcolor="white",
+    )
+
+    # Save to HTML
+    output_file = OUTPUT_DIR / "day_ahead_prices_nl_spread_analysis.html"
+    fig.write_html(
+        str(output_file),
+        include_plotlyjs="cdn",
+        config={
+            "displayModeBar": True,
+            "displaylogo": False,
+            "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
+        },
+    )
+    print(f"Spread analysis chart saved to: {output_file}")
 
     return fig
 
@@ -308,6 +624,10 @@ if __name__ == "__main__":
     # Generate comparison chart
     print("\n2. Creating year comparison chart...")
     create_yearly_comparison_chart()
+
+    # Generate spread analysis chart
+    print("\n3. Creating spread analysis chart...")
+    create_spread_analysis_chart()
 
     print("\n" + "-" * 50)
     print("Done! Charts generated successfully.")
