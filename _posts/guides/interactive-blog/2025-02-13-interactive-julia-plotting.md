@@ -8,6 +8,15 @@ categories: guides
 related_posts: false
 citation: true
 giscus_comments: true
+toc:
+  - name: A first example
+  - name: A volume plot
+  - name: Bonus - Plotting a Differential Equation
+  - name: Conclusion
+authors:
+  - name: Stefan de Lange
+    affiliations:
+      name: TU Eindhoven
 ---
 
 _Wouldn't it be cool to have 3D interactive visualizations right in your blog posts?_
@@ -86,7 +95,7 @@ the parent session as an argument.
 
 {% include_relative volume.html %}
 
-## Bonus: Plotting a Differential Equation
+## Bonus - Plotting a Differential Equation
 
 Let's plot a differential equation using the [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/)
 package. We will solve the Lorenz system of differential equations and plot the result.
