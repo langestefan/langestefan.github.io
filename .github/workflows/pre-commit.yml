@@ -5,10 +5,25 @@ on:
   push:
     branches: [main]
 
+env:
+  DEFAULT_PYTHON: "3.13"
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-      - uses: pre-commit/action@v3.0.1
+      - name: 🏗 Set up Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: 24
+      - name: 🏗 Install NPM dependencies
+        run: npm install
+      - name: ⤵️ Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+      - name: 🏗 Set up Python ${{ env.DEFAULT_PYTHON }}
+        id: python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - name: 🚀 Run pre-commit hooks
+        uses: pre-commit/action@v3.0.1
