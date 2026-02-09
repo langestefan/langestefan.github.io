@@ -341,9 +341,12 @@ def load_hourly_data(year):
 
 def calculate_daily_spreads(year, window_hours, smoothing_days=7):
     """
-    Calculate daily price spreads for different time windows.
+    Calculate daily price metrics for different time windows.
 
-    Spread = (average of most expensive X hours) - (average of cheapest X hours)
+    Returns DataFrame with:
+    - spread: (average of most expensive X hours) - (average of cheapest X hours)
+    - most_expensive: average of most expensive X hours
+    - cheapest: average of cheapest X hours
     where X = window_hours
     """
     df = load_hourly_data(year)
@@ -351,11 +354,11 @@ def calculate_daily_spreads(year, window_hours, smoothing_days=7):
     # Number of 15-minute intervals in the window
     window_size = window_hours * 4
 
-    # Calculate spread for each day
-    def calc_spread(group):
+    # Calculate metrics for each day
+    def calc_metrics(group):
         prices = group["prijs_excl_belastingen"].values
         if len(prices) < window_size * 2:  # Need at least 2x window size for comparison
-            return None
+            return pd.Series({"spread": None, "most_expensive": None, "cheapest": None})
 
         # Sort prices to find most expensive and cheapest periods
         sorted_prices = sorted(prices, reverse=True)
@@ -367,23 +370,38 @@ def calculate_daily_spreads(year, window_hours, smoothing_days=7):
         avg_cheap = sum(sorted_prices[-window_size:]) / window_size
 
         # Spread is the difference
-        return avg_expensive - avg_cheap
+        spread = avg_expensive - avg_cheap
 
-    daily_spreads = df.groupby("date").apply(calc_spread).reset_index()
-    daily_spreads.columns = ["date", "spread"]
-    daily_spreads = daily_spreads.dropna()  # Remove any days with insufficient data
-    daily_spreads["window_hours"] = window_hours
+        return pd.Series({
+            "spread": spread,
+            "most_expensive": avg_expensive,
+            "cheapest": avg_cheap
+        })
+
+    daily_metrics = df.groupby("date").apply(calc_metrics).reset_index()
+    daily_metrics = daily_metrics.dropna()  # Remove any days with insufficient data
+    daily_metrics["window_hours"] = window_hours
 
     # Apply rolling mean to smooth the data
     if smoothing_days > 1:
-        daily_spreads = daily_spreads.sort_values("date")
-        daily_spreads["spread"] = (
-            daily_spreads["spread"]
+        daily_metrics = daily_metrics.sort_values("date")
+        daily_metrics["spread"] = (
+            daily_metrics["spread"]
+            .rolling(window=smoothing_days, center=True, min_periods=1)
+            .mean()
+        )
+        daily_metrics["most_expensive"] = (
+            daily_metrics["most_expensive"]
+            .rolling(window=smoothing_days, center=True, min_periods=1)
+            .mean()
+        )
+        daily_metrics["cheapest"] = (
+            daily_metrics["cheapest"]
             .rolling(window=smoothing_days, center=True, min_periods=1)
             .mean()
         )
 
-    return daily_spreads
+    return daily_metrics
 
 
 def create_spread_analysis_chart():
@@ -391,6 +409,7 @@ def create_spread_analysis_chart():
     # Define time windows to analyze
     time_windows = [1, 2, 4, 6, 8]
     smoothing_periods = [1, 7, 30]  # Days for rolling mean
+    metrics = ["spread", "most_expensive", "cheapest"]
 
     # Load data for all years, windows, and smoothing periods
     all_data = {}
@@ -456,78 +475,117 @@ def create_spread_analysis_chart():
         8: "longdash",
     }
 
-    # Add traces for each smoothing period, year, and time window
-    for smoothing_days in smoothing_periods:
-        all_year_data = all_data[smoothing_days]
-        for year in sorted(all_year_data.keys()):
-            for window in time_windows:
-                spread_data = all_year_data[year][window].copy()
+    # Add traces for each metric, smoothing period, year, and time window
+    for metric in metrics:
+        for smoothing_days in smoothing_periods:
+            all_year_data = all_data[smoothing_days]
+            for year in sorted(all_year_data.keys()):
+                for window in time_windows:
+                    spread_data = all_year_data[year][window].copy()
 
-                # Convert date to datetime for proper x-axis
-                spread_data["original_date"] = pd.to_datetime(spread_data["date"])
+                    # Convert date to datetime for proper x-axis
+                    spread_data["original_date"] = pd.to_datetime(spread_data["date"])
 
-                # Normalize all years to same reference year (2024) for overlay comparison
-                spread_data["normalized_date"] = spread_data["original_date"].apply(
-                    lambda x: x.replace(year=2024)
-                )
-
-                # Get gradient color for this year and window
-                gradient_index = window_to_gradient_index[window]
-                window_color = year_color_gradients[year][gradient_index]
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=spread_data["normalized_date"],
-                        y=spread_data["spread"],
-                        name=f"{window}h",
-                        legendgroup=f"year_{year}",
-                        legendgrouptitle_text=f"{year}",
-                        mode="lines+markers",
-                        line=dict(
-                            color=window_color,
-                            width=2.5 if year == max(all_year_data.keys()) else 2,
-                            dash=window_line_styles.get(window, "solid"),
-                        ),
-                        marker=dict(
-                            symbol=year_markers.get(year, "circle"),
-                            size=4,
-                            color=window_color,
-                        ),
-                        opacity=0.85 if year == max(all_year_data.keys()) else 0.7,
-                        visible=(
-                            smoothing_days == 7
-                        ),  # Show 7-day smoothing by default
-                        showlegend=True,
-                        hovertemplate=f"<b>%{{x|%b %d}} ({year})</b><br>"
-                        + f"{window}-hour window<br>"
-                        + "Avg Spread: €%{y:.4f}/kWh<br>"
-                        + "<extra></extra>",
+                    # Normalize all years to same reference year (2024) for overlay comparison
+                    spread_data["normalized_date"] = spread_data["original_date"].apply(
+                        lambda x: x.replace(year=2024)
                     )
-                )
+
+                    # Get gradient color for this year and window
+                    gradient_index = window_to_gradient_index[window]
+                    window_color = year_color_gradients[year][gradient_index]
+
+                    # Format metric name for display
+                    metric_label = {
+                        "spread": "Spread",
+                        "most_expensive": "Most Expensive",
+                        "cheapest": "Cheapest"
+                    }[metric]
+
+                    fig.add_trace(
+                        go.Scatter(
+                            x=spread_data["normalized_date"],
+                            y=spread_data[metric],
+                            name=f"{window}h",
+                            legendgroup=f"year_{year}_{metric}",
+                            legendgrouptitle_text=f"{year}",
+                            mode="lines+markers",
+                            line=dict(
+                                color=window_color,
+                                width=2.5 if year == max(all_year_data.keys()) else 2,
+                                dash=window_line_styles.get(window, "solid"),
+                            ),
+                            marker=dict(
+                                symbol=year_markers.get(year, "circle"),
+                                size=4,
+                                color=window_color,
+                            ),
+                            opacity=0.85 if year == max(all_year_data.keys()) else 0.7,
+                            visible=(
+                                metric == "spread" and smoothing_days == 7
+                            ),  # Show spread with 7-day smoothing by default
+                            showlegend=True,
+                            hovertemplate=f"<b>%{{x|%b %d}} ({year})</b><br>"
+                            + f"{window}-hour window<br>"
+                            + f"{metric_label}: €%{{y:.4f}}/kWh<br>"
+                            + "<extra></extra>",
+                        )
+                    )
+
+    # Calculate number of traces per combination
+    traces_per_smoothing = len(YEARS) * len(time_windows)
+    traces_per_metric = traces_per_smoothing * len(smoothing_periods)
+
+    # Create dropdown buttons for metric selection
+    metric_buttons = []
+    for metric_idx, metric in enumerate(metrics):
+        metric_labels = {
+            "spread": "Spread",
+            "most_expensive": "Most Expensive",
+            "cheapest": "Cheapest"
+        }
+
+        def make_metric_visibility(m_idx, current_smoothing_idx=1):
+            """Create visibility array for a specific metric and smoothing period."""
+            visibility = [False] * (len(metrics) * len(smoothing_periods) * traces_per_smoothing)
+            # Show only traces for this metric and the current smoothing period
+            start_idx = m_idx * traces_per_metric + current_smoothing_idx * traces_per_smoothing
+            for j in range(traces_per_smoothing):
+                visibility[start_idx + j] = True
+            return visibility
+
+        metric_buttons.append(
+            dict(
+                label=metric_labels[metric],
+                method="update",
+                args=[
+                    {"visible": make_metric_visibility(metric_idx)},
+                ],
+            )
+        )
 
     # Create dropdown buttons for smoothing period selection
-    buttons = []
-    traces_per_smoothing = len(YEARS) * len(time_windows)
-
-    for i, smoothing_days in enumerate(smoothing_periods):
-        # Create visibility list
-        visibility = [False] * (len(smoothing_periods) * traces_per_smoothing)
-
-        # Make traces for this smoothing period visible
-        start_idx = i * traces_per_smoothing
-        for j in range(traces_per_smoothing):
-            visibility[start_idx + j] = True
-
+    smoothing_buttons = []
+    for smoothing_idx, smoothing_days in enumerate(smoothing_periods):
         smoothing_label = (
             "No smoothing" if smoothing_days == 1 else f"{smoothing_days}-day avg"
         )
 
-        buttons.append(
+        def make_smoothing_visibility(s_idx, current_metric_idx=0):
+            """Create visibility array for a specific smoothing period and metric."""
+            visibility = [False] * (len(metrics) * len(smoothing_periods) * traces_per_smoothing)
+            # Show only traces for this smoothing period and the current metric
+            start_idx = current_metric_idx * traces_per_metric + s_idx * traces_per_smoothing
+            for j in range(traces_per_smoothing):
+                visibility[start_idx + j] = True
+            return visibility
+
+        smoothing_buttons.append(
             dict(
                 label=smoothing_label,
                 method="update",
                 args=[
-                    {"visible": visibility},
+                    {"visible": make_smoothing_visibility(smoothing_idx)},
                 ],
             )
         )
@@ -535,7 +593,7 @@ def create_spread_analysis_chart():
     # Update layout
     fig.update_layout(
         title=dict(
-            text="Daily Price Spread Analysis (All Years)<br><sub>Maximum spread within different time windows</sub>",
+            text="Daily Price Analysis (All Years)<br><sub>Spread and price extremes within different time windows</sub>",
             font=dict(size=20),
         ),
         xaxis=dict(
@@ -549,13 +607,27 @@ def create_spread_analysis_chart():
             dtick="M1",
         ),
         yaxis=dict(
-            title="Price Spread (€/kWh)",
+            title="Price (€/kWh)",
             tickfont_size=14,
         ),
         updatemenus=[
             dict(
+                active=0,  # Spread is default
+                buttons=metric_buttons,
+                direction="down",
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=0.70,
+                xanchor="left",
+                y=1.15,
+                yanchor="top",
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                bordercolor="#333",
+                borderwidth=2,
+            ),
+            dict(
                 active=1,  # 7-day smoothing is default (index 1)
-                buttons=buttons,
+                buttons=smoothing_buttons,
                 direction="down",
                 pad={"r": 10, "t": 10},
                 showactive=True,
@@ -566,20 +638,6 @@ def create_spread_analysis_chart():
                 bgcolor="rgba(255, 255, 255, 0.8)",
                 bordercolor="#333",
                 borderwidth=2,
-            )
-        ],
-        annotations=[
-            dict(
-                text="Smoothing:",
-                showarrow=False,
-                x=1.0,
-                y=1.20,
-                xref="paper",
-                yref="paper",
-                align="right",
-                xanchor="right",
-                yanchor="top",
-                font=dict(size=14),
             )
         ],
         height=700,
