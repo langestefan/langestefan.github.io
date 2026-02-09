@@ -37,11 +37,11 @@ ninja.data = [{
           handler: () => {
             window.location.href = "/repositories/";
           },
-        },{id: "post-dutch-day-ahead-electricity-prices-2019-2026",
+        },{id: "post-dutch-day-ahead-electricity-prices-2019-2025",
       
-        title: "Dutch Day-Ahead Electricity Prices (2019-2026)",
+        title: "Dutch Day-Ahead Electricity Prices (2019-2025)",
       
-      description: "Interactive visualization of monthly average electricity prices in the Netherlands from 2019 to 2026",
+      description: "Interactive visualization of monthly average electricity prices in the Netherlands from 2019 to 2025",
       section: "Posts",
       handler: () => {
         
