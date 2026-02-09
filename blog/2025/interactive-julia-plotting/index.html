@@ -37,20 +37,54 @@
     </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> De Vonk </a> <button class="navbar-toggler collapsed ml-auto" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse text-right" id="navbarNav"> <ul class="navbar-nav ml-auto flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item active"> <a class="nav-link" href="/blog/">blog </a> </li> <li class="nav-item "> <a class="nav-link" href="/publications/">publications </a> </li> <li class="nav-item "> <a class="nav-link" href="/projects/">projects </a> </li> <li class="nav-item "> <a class="nav-link" href="/repositories/">repositories </a> </li> <li class="nav-item"> <button id="search-toggle" title="Search" onclick="openSearchModal()"> <span class="nav-link">ctrl k <i class="ti ti-search"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" title="Change theme"> <i class="ti ti-sun-moon" id="light-toggle-system"></i> <i class="ti ti-moon-filled" id="light-toggle-dark"></i> <i class="ti ti-sun-filled" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>Creating Interactive Blog Posts with WGLMakie.jl</h1> <p>A tutorial on how to add interactive Makie.jl plots to your blog</p> </d-title> <d-byline></d-byline> <script>
         document.addEventListener('DOMContentLoaded', function () {
           var bylineGrid = document.querySelector('d-byline .byline.grid');
-          if (bylineGrid) {
-            var githubCol = document.createElement('div');
-            githubCol.className = 'github-source';
-            githubCol.style.display = 'flex';
-            githubCol.style.alignItems = 'center';
-            githubCol.innerHTML =
-              '<a class="github-btn" href="https://github.com/langestefan/langestefan.github.io/blob/main/_posts/guides/interactive-blog/2025-02-13-interactive-julia-plotting.md" target="_blank" rel="noopener noreferrer">' +
-              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="20" height="20" fill="currentColor" style="vertical-align: -0.15em; margin-right: 6px;">' +
-              '<path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>' +
-              '</svg>' +
-              'GitHub' +
-              '</a>';
-            bylineGrid.appendChild(githubCol);
+          if (!bylineGrid) return;
+
+          var githubCol = document.createElement('div');
+          githubCol.className = 'github-source';
+          githubCol.style.display = 'flex';
+          githubCol.style.alignItems = 'center';
+          githubCol.innerHTML =
+            '<a class="github-btn" href="https://github.com/langestefan/langestefan.github.io/blob/main/_posts/guides/interactive-blog/2025-02-13-interactive-julia-plotting.md" target="_blank" rel="noopener noreferrer">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="20" height="20" fill="currentColor" style="vertical-align: -0.15em; margin-right: 6px;">' +
+            '<path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>' +
+            '</svg>' +
+            'GitHub' +
+            '</a>';
+          bylineGrid.appendChild(githubCol);
+
+          var btn = githubCol.querySelector('.github-btn');
+
+          function applyThemeStyles() {
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+              btn.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+              btn.style.border = '1px solid rgba(255, 255, 255, 0.25)';
+              btn.style.color = '#dee2e6';
+            } else {
+              btn.style.backgroundColor = 'rgba(0, 0, 0, 0.08)';
+              btn.style.border = '1px solid rgba(0, 0, 0, 0.2)';
+              btn.style.color = '#212529';
+            }
           }
+
+          applyThemeStyles();
+
+          // Watch for theme changes
+          var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+              if (m.attributeName === 'data-theme') applyThemeStyles();
+            });
+          });
+          observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+          btn.addEventListener('mouseenter', function () {
+            btn.style.backgroundColor = 'var(--global-hover-color)';
+            btn.style.borderColor = 'var(--global-hover-color)';
+            btn.style.color = 'var(--global-bg-color)';
+          });
+          btn.addEventListener('mouseleave', function () {
+            applyThemeStyles();
+          });
         });
       </script> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#a-first-example">A first example</a> </div> <div> <a href="#a-volume-plot">A volume plot</a> </div> <div> <a href="#bonus-plotting-a-differential-equation">Bonus - Plotting a Differential Equation</a> </div> <div> <a href="#conclusion">Conclusion</a> </div> </nav> </d-contents> <p><em>Wouldn’t it be cool to have 3D interactive visualizations right in your blog posts?</em></p> <p>Instead of just showing static images, you could let readers play around with interactive plots—maybe to get a better handle on the data, or just for the fun of it. Since I didn’t want to depend on any backend services I am using static HTML files to host the interactive plots. All code for this blog post <a href="https://github.com/langestefan/langestefan.github.io/tree/main/_posts/guides/interactive-blog" rel="external nofollow noopener" target="_blank">is available on GitHub</a>.</p> <p>I figured I couldn’t be the first to think of this, and I wasn’t wrong. I found <a href="https://aarontrowbridge.github.io/posts/interactive-julia-plotting/" rel="external nofollow noopener" target="_blank">Aaron’s blog post</a>, which walks you through creating interactive plots on a web page using <a href="https://github.com/MakieOrg/Makie.jl/tree/master/WGLMakie" rel="external nofollow noopener" target="_blank">WGLMakie.jl</a>—the web-based backend for the <a href="https://docs.makie.org/stable/" rel="external nofollow noopener" target="_blank">Makie.jl</a> plotting library.</p> <p>Aaron’s method is now about four years old, and sadly it doesn’t work anymore. I was determined to make it happen, so I reached out for help and, as usual, the Julia community came through. <a href="https://discourse.julialang.org/t/exporting-figures-to-static-html/125896/16?u=langestefan" rel="external nofollow noopener" target="_blank">Simon Danisch</a>, the creator of Makie.jl, shared some valuable tips on setting everything up and this blog post is the result.</p> <div class="markdown-alert markdown-alert-note" dir="auto"> <p class="markdown-alert-title" dir="auto"><svg class="octicon octicon-info mr-2" viewbox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p> <div dir="auto" class="pInfo"> <p>Besides WGLMakie.jl we will also need <a href="https://github.com/SimonDanisch/Bonito.jl" rel="external nofollow noopener" target="_blank">Bonito.jl</a> to create the HTML descriptions, which will enable us to embed the plot in a blog post.</p> </div> </div> <h2 id="a-first-example">A first example</h2> <p>First, we need a location to store the script that generates our plots. I prefer to group all files for a specific post in a single folder. For this post, I created a folder called <code class="language-plaintext highlighter-rouge">_posts/guides/interactive-blog/</code> and saved the script as <code class="language-plaintext highlighter-rouge">plots.jl</code>. As a preliminary example we will just plot some random data.</p> <div class="language-julia highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">using</span> <span class="n">Bonito</span><span class="x">,</span> <span class="n">WGLMakie</span>
 
