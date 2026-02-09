@@ -537,56 +537,34 @@ def create_spread_analysis_chart():
     traces_per_metric = traces_per_smoothing * len(smoothing_periods)
 
     # Create dropdown buttons for metric selection
+    # Using method="skip" so custom JavaScript handles the coupled state between dropdowns
+    metric_labels_map = {
+        "spread": "Spread",
+        "most_expensive": "Most Expensive",
+        "cheapest": "Cheapest"
+    }
     metric_buttons = []
     for metric_idx, metric in enumerate(metrics):
-        metric_labels = {
-            "spread": "Spread",
-            "most_expensive": "Most Expensive",
-            "cheapest": "Cheapest"
-        }
-
-        def make_metric_visibility(m_idx, current_smoothing_idx=1):
-            """Create visibility array for a specific metric and smoothing period."""
-            visibility = [False] * (len(metrics) * len(smoothing_periods) * traces_per_smoothing)
-            # Show only traces for this metric and the current smoothing period
-            start_idx = m_idx * traces_per_metric + current_smoothing_idx * traces_per_smoothing
-            for j in range(traces_per_smoothing):
-                visibility[start_idx + j] = True
-            return visibility
-
         metric_buttons.append(
             dict(
-                label=metric_labels[metric],
-                method="update",
-                args=[
-                    {"visible": make_metric_visibility(metric_idx)},
-                ],
+                label=metric_labels_map[metric],
+                method="skip",
+                args=[None],
             )
         )
 
     # Create dropdown buttons for smoothing period selection
+    # Using method="skip" so custom JavaScript handles the coupled state between dropdowns
     smoothing_buttons = []
     for smoothing_idx, smoothing_days in enumerate(smoothing_periods):
         smoothing_label = (
             "No smoothing" if smoothing_days == 1 else f"{smoothing_days}-day avg"
         )
-
-        def make_smoothing_visibility(s_idx, current_metric_idx=0):
-            """Create visibility array for a specific smoothing period and metric."""
-            visibility = [False] * (len(metrics) * len(smoothing_periods) * traces_per_smoothing)
-            # Show only traces for this smoothing period and the current metric
-            start_idx = current_metric_idx * traces_per_metric + s_idx * traces_per_smoothing
-            for j in range(traces_per_smoothing):
-                visibility[start_idx + j] = True
-            return visibility
-
         smoothing_buttons.append(
             dict(
                 label=smoothing_label,
-                method="update",
-                args=[
-                    {"visible": make_smoothing_visibility(smoothing_idx)},
-                ],
+                method="skip",
+                args=[None],
             )
         )
 
@@ -655,17 +633,68 @@ def create_spread_analysis_chart():
         paper_bgcolor="white",
     )
 
-    # Save to HTML
+    # Save to HTML with custom JavaScript for coupled dropdown state
     output_file = OUTPUT_DIR / "day_ahead_prices_nl_spread_analysis.html"
-    fig.write_html(
-        str(output_file),
+    total_traces = len(metrics) * len(smoothing_periods) * traces_per_smoothing
+
+    # JavaScript that synchronizes the two dropdowns and preserves legend
+    # toggle state: when either dropdown changes, it captures which traces
+    # in the current group are 'legendonly' (hidden via legend click), then
+    # applies the same pattern to the new group.
+    coupled_dropdown_js = f"""<script>
+(function() {{
+    var gd = document.querySelector('.js-plotly-plot');
+    var TPS = {traces_per_smoothing};
+    var TPM = {traces_per_metric};
+    var TOT = {total_traces};
+
+    // Track the previous dropdown state (defaults match initial layout)
+    var prevM = 0, prevS = 1;
+
+    function groupStart(m, s) {{ return m * TPM + s * TPS; }}
+
+    gd.on('plotly_buttonclicked', function() {{
+        // Capture legend toggle state from the OLD (still-current) group
+        var os = groupStart(prevM, prevS);
+        var legendState = [];
+        for (var j = 0; j < TPS; j++) {{
+            legendState.push(gd.data[os + j].visible === 'legendonly' ? 'legendonly' : true);
+        }}
+
+        // Use setTimeout so the updatemenus active indices are updated first
+        setTimeout(function() {{
+            var m = gd.layout.updatemenus[0].active;
+            var s = gd.layout.updatemenus[1].active;
+            var ns = groupStart(m, s);
+
+            // Build visibility: new group gets old legend state, rest hidden
+            var v = [];
+            for (var i = 0; i < TOT; i++) {{
+                v.push(i >= ns && i < ns + TPS ? legendState[i - ns] : false);
+            }}
+            Plotly.restyle(gd, {{visible: v}});
+
+            prevM = m;
+            prevS = s;
+        }}, 0);
+    }});
+}})();
+</script>"""
+
+    html_str = fig.to_html(
         include_plotlyjs="cdn",
+        full_html=True,
         config={
             "displayModeBar": True,
             "displaylogo": False,
             "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
         },
     )
+    html_str = html_str.replace("</body>", coupled_dropdown_js + "\n</body>")
+
+    with open(str(output_file), "w") as f:
+        f.write(html_str)
+
     print(f"Spread analysis chart saved to: {output_file}")
 
     return fig
