@@ -1338,6 +1338,56 @@ ninja-keys::part(ninja-input-wrapper) {
   }
 }
 
+// Heading anchor links
+h1[id],
+h2[id],
+h3[id],
+h4[id],
+h5[id],
+h6[id] {
+  // Make heading text itself a clickable link
+  .heading-text-link {
+    color: var(--global-text-color) !important;
+    text-decoration: none !important;
+    border-bottom: none !important;
+
+    &:hover {
+      color: var(--global-text-color) !important;
+      text-decoration: underline !important;
+    }
+  }
+
+  // Link icon next to heading
+  .heading-anchor {
+    opacity: 0;
+    font-size: 0.7em;
+    margin-left: 0.3em;
+    vertical-align: middle;
+    text-decoration: none !important;
+    border-bottom: none !important;
+    color: var(--global-theme-color);
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      text-decoration: none !important;
+    }
+
+    &.copied {
+      opacity: 1;
+
+      &::after {
+        content: " copied!";
+        font-size: 0.75em;
+        color: var(--global-theme-color);
+      }
+    }
+  }
+
+  &:hover .heading-anchor {
+    opacity: 1;
+  }
+}
+
 // highlight-search-term
 ::highlight(search) {
   background-color: var(--global-theme-color);
