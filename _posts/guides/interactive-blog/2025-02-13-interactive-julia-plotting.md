@@ -8,6 +8,7 @@ categories: guides
 related_posts: false
 citation: true
 giscus_comments: true
+featured: true
 toc:
   - name: A first example
   - name: A volume plot

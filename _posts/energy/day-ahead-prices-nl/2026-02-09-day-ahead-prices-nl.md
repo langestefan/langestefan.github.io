@@ -7,6 +7,12 @@ categories: energy
 giscus_comments: true
 date: 2026-02-09
 featured: true
+toc:
+  - name: Overview
+  - name: Monthly Average Prices by Year
+  - name: Year-over-Year Comparison
+  - name: Daily Price Spread Analysis
+  - name: Data Source
 authors:
   - name: Stefan de Lange
     affiliations:
