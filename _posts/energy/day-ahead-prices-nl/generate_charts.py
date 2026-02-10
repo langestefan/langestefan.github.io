@@ -16,6 +16,98 @@ OUTPUT_DIR = Path("../../../assets/plotly")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 YEARS = list(range(2019, 2026))
 
+# Dark mode theme script injected into each chart HTML.
+# Detects the parent page's data-theme attribute and applies matching colors.
+THEME_SCRIPT = """
+<style>
+  html, body {
+    background: transparent !important;
+    margin: 0;
+    padding: 0;
+  }
+</style>
+<script>
+(function() {
+  var LIGHT = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(240,240,240,0.5)',
+    'font.color': '#2a3f5f',
+    'xaxis.gridcolor': '#ccc',
+    'xaxis.zerolinecolor': '#ccc',
+    'xaxis.tickfont.color': '#2a3f5f',
+    'xaxis.title.font.color': '#2a3f5f',
+    'yaxis.gridcolor': '#ccc',
+    'yaxis.zerolinecolor': '#ccc',
+    'yaxis.tickfont.color': '#2a3f5f',
+    'yaxis.title.font.color': '#2a3f5f',
+    'legend.font.color': '#2a3f5f',
+    'title.font.color': '#2a3f5f'
+  };
+  var DARK = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(255,255,255,0.06)',
+    'font.color': '#c9d1d9',
+    'xaxis.gridcolor': 'rgba(255,255,255,0.12)',
+    'xaxis.zerolinecolor': 'rgba(255,255,255,0.12)',
+    'xaxis.tickfont.color': '#c9d1d9',
+    'xaxis.title.font.color': '#c9d1d9',
+    'yaxis.gridcolor': 'rgba(255,255,255,0.12)',
+    'yaxis.zerolinecolor': 'rgba(255,255,255,0.12)',
+    'yaxis.tickfont.color': '#c9d1d9',
+    'yaxis.title.font.color': '#c9d1d9',
+    'legend.font.color': '#c9d1d9',
+    'title.font.color': '#c9d1d9'
+  };
+
+  function getTheme() {
+    try {
+      var t = window.parent.document.documentElement.getAttribute('data-theme');
+      if (t) return t;
+    } catch(e) {}
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme() {
+    var gd = document.querySelector('.js-plotly-plot');
+    if (!gd) return;
+    var t = getTheme();
+    var colors = t === 'dark' ? DARK : LIGHT;
+    // Update dropdown button backgrounds
+    var menus = (gd.layout && gd.layout.updatemenus) || [];
+    var newMenus = menus.map(function(m) {
+      return Object.assign({}, m, {
+        bgcolor: t === 'dark' ? 'rgba(50,50,60,0.9)' : 'rgba(255,255,255,0.8)',
+        bordercolor: t === 'dark' ? '#666' : '#333',
+        font: {color: t === 'dark' ? '#dee2e6' : '#2a3f5f'}
+      });
+    });
+    var update = Object.assign({}, colors);
+    if (newMenus.length) update.updatemenus = newMenus;
+    Plotly.relayout(gd, update);
+  }
+
+  // Apply on load and watch for changes
+  if (document.readyState === 'complete') {
+    setTimeout(applyTheme, 100);
+  } else {
+    window.addEventListener('load', function() { setTimeout(applyTheme, 100); });
+  }
+  try {
+    var obs = new MutationObserver(function(muts) {
+      muts.forEach(function(m) { if (m.attributeName === 'data-theme') applyTheme(); });
+    });
+    obs.observe(window.parent.document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+  } catch(e) {}
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+})();
+</script>
+"""
+
+
+def inject_theme_script(html_str):
+    """Inject the dark mode theme script into the HTML."""
+    return html_str.replace("</body>", THEME_SCRIPT + "\n</body>")
+
 
 def create_color_gradient(hex_color, num_shades=5):
     """Create a gradient of colors from a base hex color."""
@@ -191,20 +283,22 @@ def create_interactive_chart():
         hovermode="x unified",
         bargap=0.15,
         plot_bgcolor="rgba(240, 240, 240, 0.5)",
-        paper_bgcolor="white",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
 
-    # Save to HTML
+    # Save to HTML with theme support
     output_file = OUTPUT_DIR / "day_ahead_prices_nl.html"
-    fig.write_html(
-        str(output_file),
+    html_str = fig.to_html(
         include_plotlyjs="cdn",
+        full_html=True,
         config={
             "displayModeBar": True,
             "displaylogo": False,
             "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
         },
     )
+    with open(str(output_file), "w") as f:
+        f.write(inject_theme_script(html_str))
     print(f"Chart saved to: {output_file}")
 
     return fig
@@ -300,20 +394,22 @@ def create_yearly_comparison_chart():
         bargap=0.15,
         bargroupgap=0.1,
         plot_bgcolor="rgba(240, 240, 240, 0.5)",
-        paper_bgcolor="white",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
 
-    # Save to HTML
+    # Save to HTML with theme support
     output_file = OUTPUT_DIR / "day_ahead_prices_nl_comparison.html"
-    fig.write_html(
-        str(output_file),
+    html_str = fig.to_html(
         include_plotlyjs="cdn",
+        full_html=True,
         config={
             "displayModeBar": True,
             "displaylogo": False,
             "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
         },
     )
+    with open(str(output_file), "w") as f:
+        f.write(inject_theme_script(html_str))
     print(f"Comparison chart saved to: {output_file}")
 
     return fig
@@ -630,7 +726,7 @@ def create_spread_analysis_chart():
         ),
         hovermode="closest",
         plot_bgcolor="rgba(240, 240, 240, 0.5)",
-        paper_bgcolor="white",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
 
     # Save to HTML with custom JavaScript for coupled dropdown state
@@ -691,6 +787,7 @@ def create_spread_analysis_chart():
         },
     )
     html_str = html_str.replace("</body>", coupled_dropdown_js + "\n</body>")
+    html_str = inject_theme_script(html_str)
 
     with open(str(output_file), "w") as f:
         f.write(html_str)
