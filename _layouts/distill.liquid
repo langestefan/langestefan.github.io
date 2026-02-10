@@ -119,9 +119,16 @@
           observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
           btn.addEventListener('mouseenter', function () {
-            btn.style.backgroundColor = 'var(--global-hover-color)';
-            btn.style.borderColor = 'var(--global-hover-color)';
-            btn.style.color = 'var(--global-bg-color)';
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+              btn.style.backgroundColor = 'rgba(255, 255, 255, 0.22)';
+              btn.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+              btn.style.color = '#fff';
+            } else {
+              btn.style.backgroundColor = 'rgba(0, 0, 0, 0.15)';
+              btn.style.borderColor = 'rgba(0, 0, 0, 0.35)';
+              btn.style.color = '#000';
+            }
           });
           btn.addEventListener('mouseleave', function () {
             applyThemeStyles();
