@@ -797,6 +797,453 @@ def create_spread_analysis_chart():
     return fig
 
 
+def load_hourly_resampled(year):
+    """Load 15-min data and downsample to hourly averages."""
+    filepath = DATA_DIR / f"jeroen_punt_nl_dynamische_stroomprijzen_jaar_{year}.csv"
+    df = pd.read_csv(filepath, sep=";", parse_dates=["datum_nl"])
+    df["prijs_excl_belastingen"] = (
+        df["prijs_excl_belastingen"].str.replace(",", ".").astype(float)
+    )
+    # Resample to hourly by flooring to the hour and averaging
+    df["hour_ts"] = df["datum_nl"].dt.floor("h")
+    hourly = df.groupby("hour_ts")["prijs_excl_belastingen"].mean().reset_index()
+    hourly.columns = ["timestamp", "price"]
+    hourly["year"] = year
+    hourly["month"] = hourly["timestamp"].dt.month
+    hourly["month_name"] = hourly["timestamp"].dt.strftime("%b")
+    return hourly
+
+
+def create_negative_price_frequency_chart():
+    """
+    Create a grouped bar chart showing negative-price frequency per month.
+
+    Dropdown to switch between:
+      - Count of hours with price <= -0.01 €/kWh
+      - Cumulative sum of negative prices (absolute value, €/kWh)
+
+    All years shown simultaneously with legend toggles. Dropdown preserves
+    legend toggle state using custom JS (like the spread analysis chart).
+    """
+    month_names = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ]
+
+    colors = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+        "#9467bd", "#8c564b", "#e377c2",
+    ]
+
+    all_year_stats = {}
+    for year in YEARS:
+        try:
+            hourly = load_hourly_resampled(year)
+        except FileNotFoundError:
+            continue
+        neg = hourly[hourly["price"] <= -0.01].copy()
+        count_per_month = neg.groupby("month")["price"].count()
+        sum_per_month = neg.groupby("month")["price"].sum()
+        # Reindex to full 12 months
+        count_per_month = count_per_month.reindex(range(1, 13), fill_value=0)
+        sum_per_month = sum_per_month.reindex(range(1, 13), fill_value=0.0)
+        all_year_stats[year] = {
+            "count": count_per_month,
+            "sum": sum_per_month,
+        }
+
+    fig = go.Figure()
+    sorted_years = sorted(all_year_stats.keys())
+    n_years = len(sorted_years)
+    metrics = ["count", "sum"]
+    traces_per_metric = n_years  # one trace per year per metric
+
+    # Layout: [count_y1, count_y2, ..., count_yN, sum_y1, sum_y2, ..., sum_yN]
+    for metric_idx, metric in enumerate(metrics):
+        for yi, year in enumerate(sorted_years):
+            stats = all_year_stats[year]
+            color = colors[yi % len(colors)]
+
+            if metric == "count":
+                y_vals = stats["count"].values
+                hover = (
+                    f"<b>%{{x}} {year}</b><br>"
+                    "Negative hours: %{y}<br>"
+                    "<extra></extra>"
+                )
+            else:
+                # Flip sign so bars go upward (absolute cumulative cost)
+                y_vals = stats["sum"].abs().values.round(4)
+                hover = (
+                    f"<b>%{{x}} {year}</b><br>"
+                    "Total negative cost: €%{y:.4f}/kWh<br>"
+                    "<extra></extra>"
+                )
+
+            fig.add_trace(
+                go.Bar(
+                    x=month_names,
+                    y=y_vals,
+                    name=str(year),
+                    legendgroup=str(year),
+                    showlegend=(metric_idx == 0),
+                    marker=dict(color=color, line=dict(color="rgb(8,48,107)", width=0.5)),
+                    visible=(metric_idx == 0),  # count visible by default
+                    hovertemplate=hover,
+                )
+            )
+
+    # Dropdown uses method="skip" so custom JS handles coupled state
+    metric_buttons = [
+        dict(label="Count of negative hours", method="skip", args=[None]),
+        dict(label="Sum of negative prices", method="skip", args=[None]),
+    ]
+
+    fig.update_layout(
+        title=dict(
+            text="Negative Electricity Price Frequency<br><sub>Hours with price ≤ −0.01 €/kWh per month (hourly data)</sub>",
+            font=dict(size=20),
+        ),
+        xaxis=dict(title="Month", tickfont_size=14),
+        yaxis=dict(
+            title="Number of hours with price ≤ −0.01 €/kWh",
+            tickfont_size=14,
+        ),
+        updatemenus=[
+            dict(
+                active=0,
+                buttons=metric_buttons,
+                direction="down",
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=1.0,
+                xanchor="right",
+                y=1.15,
+                yanchor="top",
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                bordercolor="#333",
+                borderwidth=2,
+            )
+        ],
+        barmode="group",
+        height=600,
+        legend=dict(
+            title="Year",
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.02,
+        ),
+        hovermode="x unified",
+        bargap=0.15,
+        bargroupgap=0.1,
+        plot_bgcolor="rgba(240, 240, 240, 0.5)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+
+    # Custom JS to preserve legend toggle state across dropdown changes
+    total_traces = len(metrics) * n_years
+    y_titles = [
+        "Number of hours with price ≤ −0.01 €/kWh",
+        "Cumulative negative price (€/kWh)",
+    ]
+    coupled_js = f"""<script>
+(function() {{
+    var gd = document.querySelector('.js-plotly-plot');
+    var NY = {n_years};
+    var TOT = {total_traces};
+    var YTITLES = {y_titles};
+    var prev = 0;
+
+    gd.on('plotly_buttonclicked', function() {{
+        var os = prev * NY;
+        var legendState = [];
+        for (var j = 0; j < NY; j++) {{
+            legendState.push(gd.data[os + j].visible === 'legendonly' ? 'legendonly' : true);
+        }}
+        setTimeout(function() {{
+            var m = gd.layout.updatemenus[0].active;
+            var ns = m * NY;
+            var v = [];
+            for (var i = 0; i < TOT; i++) {{
+                if (i >= ns && i < ns + NY) {{
+                    v.push(legendState[i - ns]);
+                }} else {{
+                    v.push(false);
+                }}
+            }}
+            var sl = [];
+            for (var i = 0; i < TOT; i++) {{
+                sl.push(i >= ns && i < ns + NY);
+            }}
+            Plotly.restyle(gd, {{visible: v, showlegend: sl}});
+            Plotly.relayout(gd, {{'yaxis.title.text': YTITLES[m]}});
+            prev = m;
+        }}, 0);
+    }});
+}})();
+</script>"""
+
+    output_file = OUTPUT_DIR / "day_ahead_prices_nl_negative_frequency.html"
+    html_str = fig.to_html(
+        include_plotlyjs="cdn",
+        full_html=True,
+        config={
+            "displayModeBar": True,
+            "displaylogo": False,
+            "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
+        },
+    )
+    html_str = html_str.replace("</body>", coupled_js + "\n</body>")
+    html_str = inject_theme_script(html_str)
+    with open(str(output_file), "w") as f:
+        f.write(html_str)
+    print(f"Negative price frequency chart saved to: {output_file}")
+    return fig
+
+
+def create_hourly_price_histogram_chart():
+    """
+    Create overlaid histograms of hourly prices per month (5-cent bins).
+
+    Dropdown to select the month.  All years shown simultaneously with
+    legend toggles.  Dropdown preserves legend toggle state via custom JS.
+    Bins are aligned so that 0.00 is always a bin edge.
+    """
+    import numpy as np
+
+    month_names = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ]
+
+    month_names_full = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    colors = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+        "#9467bd", "#8c564b", "#e377c2",
+    ]
+
+    # Load hourly data for every year
+    yearly_hourly = {}
+    for year in YEARS:
+        try:
+            yearly_hourly[year] = load_hourly_resampled(year)
+        except FileNotFoundError:
+            continue
+
+    sorted_years = sorted(yearly_hourly.keys())
+    n_years = len(sorted_years)
+
+    # Determine global bin edges in steps of 0.05 €/kWh, aligned to 0.00
+    all_prices = pd.concat([df["price"] for df in yearly_hourly.values()])
+    price_min = all_prices.min()
+    price_max = all_prices.max()
+    # Extend from 0.00 outward in both directions to guarantee 0.00 is an edge
+    neg_edge = -0.05 * np.ceil(abs(min(price_min, 0)) / 0.05)
+    pos_edge = 0.05 * np.ceil(max(price_max, 0) / 0.05)
+    bin_edges = np.arange(neg_edge, pos_edge + 0.05, 0.05)
+    # Round to avoid floating-point drift
+    bin_edges = np.round(bin_edges, 4)
+    bin_centers = np.round((bin_edges[:-1] + bin_edges[1:]) / 2, 4)
+
+    fig = go.Figure()
+
+    # Track per-month-per-year price ranges for dynamic x-axis adjustment
+    # month_year_ranges[month_idx][year_idx] = [lo, hi] or null if no data
+    month_year_ranges = []
+
+    # For each month, for each year add one Bar trace
+    # Default visible: January (month index 0)
+    for month_idx in range(12):
+        month_num = month_idx + 1
+        year_ranges = []
+        for yi, year in enumerate(sorted_years):
+            df = yearly_hourly[year]
+            month_data = df[df["month"] == month_num]["price"]
+            if len(month_data) > 0:
+                lo = float(np.floor(month_data.min() / 0.05) * 0.05 - 0.05)
+                hi = float(np.ceil(month_data.max() / 0.05) * 0.05 + 0.05)
+                year_ranges.append([round(lo, 4), round(hi, 4)])
+            else:
+                year_ranges.append(None)
+            counts, _ = np.histogram(month_data, bins=bin_edges)
+
+            fig.add_trace(
+                go.Bar(
+                    x=bin_centers.tolist(),
+                    y=counts.tolist(),
+                    name=str(year),
+                    legendgroup=str(year),
+                    showlegend=(month_idx == 0),
+                    marker=dict(
+                        color=colors[yi % len(colors)],
+                        line=dict(width=0.5, color="rgba(0,0,0,0.3)"),
+                    ),
+                    visible=(month_idx == 0),
+                    hovertemplate=(
+                        f"<b>{month_names[month_idx]} {year}</b><br>"
+                        "Price bin: €%{x:.2f}/kWh<br>"
+                        "Count: %{y} hours<br>"
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+        month_year_ranges.append(year_ranges)
+
+    # Compute initial x range for January from all years
+    jan_lo = min(r[0] for r in month_year_ranges[0] if r is not None)
+    jan_hi = max(r[1] for r in month_year_ranges[0] if r is not None)
+
+    # Dropdown uses method="skip" so custom JS handles legend state
+    total_traces = 12 * n_years
+    month_buttons = []
+    for month_idx in range(12):
+        month_buttons.append(
+            dict(
+                label=month_names_full[month_idx],
+                method="skip",
+                args=[None],
+            )
+        )
+
+    fig.update_layout(
+        title=dict(
+            text="Hourly Price Distribution — January<br><sub>Histogram in 5-cent bins (hourly data)</sub>",
+            font=dict(size=20),
+        ),
+        xaxis=dict(
+            title="Price (€/kWh)",
+            tickfont_size=12,
+            dtick=0.05,
+            tickformat=".2f",
+            range=[jan_lo, jan_hi],
+        ),
+        yaxis=dict(
+            title="Number of hours",
+            tickfont_size=14,
+        ),
+        updatemenus=[
+            dict(
+                active=0,
+                buttons=month_buttons,
+                direction="down",
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=1.0,
+                xanchor="right",
+                y=1.15,
+                yanchor="top",
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                bordercolor="#333",
+                borderwidth=2,
+            )
+        ],
+        barmode="group",
+        height=600,
+        legend=dict(
+            title="Year",
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.02,
+        ),
+        hovermode="x unified",
+        bargap=0.05,
+        plot_bgcolor="rgba(240, 240, 240, 0.5)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+
+    # Custom JS: preserve legend state + dynamic x range from visible years
+    month_names_js = [f'"{m}"' for m in month_names_full]
+    import json
+    myr_json = json.dumps(month_year_ranges)
+    coupled_js = f"""<script>
+(function() {{
+    var gd = document.querySelector('.js-plotly-plot');
+    var NY = {n_years};
+    var TOT = {total_traces};
+    var MONTHS = [{', '.join(month_names_js)}];
+    var MYR = {myr_json};
+    var prev = 0;
+
+    function calcRange(monthIdx) {{
+        var ns = monthIdx * NY;
+        var lo = Infinity, hi = -Infinity;
+        for (var j = 0; j < NY; j++) {{
+            var vis = gd.data[ns + j].visible;
+            if (vis === true && MYR[monthIdx][j]) {{
+                lo = Math.min(lo, MYR[monthIdx][j][0]);
+                hi = Math.max(hi, MYR[monthIdx][j][1]);
+            }}
+        }}
+        if (lo === Infinity) {{ lo = -0.1; hi = 0.5; }}
+        return [lo, hi];
+    }}
+
+    // Recalc range on legend toggle
+    gd.on('plotly_legendclick', function() {{
+        setTimeout(function() {{
+            var m = gd.layout.updatemenus[0].active;
+            Plotly.relayout(gd, {{'xaxis.range': calcRange(m)}});
+        }}, 50);
+    }});
+
+    gd.on('plotly_buttonclicked', function() {{
+        var os = prev * NY;
+        var legendState = [];
+        for (var j = 0; j < NY; j++) {{
+            legendState.push(gd.data[os + j].visible === 'legendonly' ? 'legendonly' : true);
+        }}
+        setTimeout(function() {{
+            var m = gd.layout.updatemenus[0].active;
+            var ns = m * NY;
+            var v = [];
+            var sl = [];
+            for (var i = 0; i < TOT; i++) {{
+                if (i >= ns && i < ns + NY) {{
+                    v.push(legendState[i - ns]);
+                    sl.push(true);
+                }} else {{
+                    v.push(false);
+                    sl.push(false);
+                }}
+            }}
+            Plotly.restyle(gd, {{visible: v, showlegend: sl}});
+            Plotly.relayout(gd, {{
+                'title.text': 'Hourly Price Distribution — ' + MONTHS[m] + '<br><sub>Histogram in 5-cent bins (hourly data)</sub>',
+                'xaxis.range': calcRange(m)
+            }});
+            prev = m;
+        }}, 0);
+    }});
+}})();
+</script>"""
+
+    output_file = OUTPUT_DIR / "day_ahead_prices_nl_hourly_histogram.html"
+    html_str = fig.to_html(
+        include_plotlyjs="cdn",
+        full_html=True,
+        config={
+            "displayModeBar": True,
+            "displaylogo": False,
+            "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
+        },
+    )
+    html_str = html_str.replace("</body>", coupled_js + "\n</body>")
+    html_str = inject_theme_script(html_str)
+    with open(str(output_file), "w") as f:
+        f.write(html_str)
+    print(f"Hourly price histogram chart saved to: {output_file}")
+    return fig
+
+
 if __name__ == "__main__":
     print("Generating interactive bar charts...")
     print("-" * 50)
@@ -812,6 +1259,14 @@ if __name__ == "__main__":
     # Generate spread analysis chart
     print("\n3. Creating spread analysis chart...")
     create_spread_analysis_chart()
+
+    # Generate negative price frequency chart
+    print("\n4. Creating negative price frequency chart...")
+    create_negative_price_frequency_chart()
+
+    # Generate hourly price histogram chart
+    print("\n5. Creating hourly price histogram chart...")
+    create_hourly_price_histogram_chart()
 
     print("\n" + "-" * 50)
     print("Done! Charts generated successfully.")

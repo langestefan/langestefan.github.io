@@ -12,6 +12,7 @@ toc:
   - name: Monthly Average Prices by Year
   - name: Year-over-Year Comparison
   - name: Daily Price Spread Analysis
+  - name: Negative Price Analysis
   - name: Data Source
 authors:
   - name: Stefan de Lange
@@ -79,6 +80,36 @@ Where $\mathcal{E}$ is the set of the X most expensive hours and $\mathcal{C}$ i
 set of the X cheapest hours in a given day. The resulting spread $S$ represents the
 potential savings per kWh by shifting consumption from expensive hours to cheap hours
 within that time window.
+
+---
+
+## Negative Price Analysis
+
+Negative electricity prices occur when supply exceeds demand, often during periods of
+high renewable energy generation (e.g., sunny and windy afternoons) combined with low
+demand. The original 15-minute price data is downsampled to hourly averages for this
+analysis.
+
+### Negative Price Frequency
+
+This chart shows how often negative prices (≤ −0.01 €/kWh) occur each month. Use the
+dropdown to switch between the **number of negative-price hours** and the **cumulative
+sum of negative prices** in €/kWh. Toggle individual years in the legend to compare
+specific periods.
+
+<div class="l-page">
+  <iframe src="{{ '/assets/plotly/day_ahead_prices_nl_negative_frequency.html' | relative_url }}" frameborder='0' scrolling='no' height="600px" width="100%" style="border: 1px dashed grey;"></iframe>
+</div>
+
+### Hourly Price Distribution
+
+The histogram below shows the distribution of hourly electricity prices for a selected
+month, binned in steps of 5 cents (0.05 €/kWh). Use the **month dropdown** to explore
+different months, and toggle years in the legend to compare distributions across years.
+
+<div class="l-page">
+  <iframe src="{{ '/assets/plotly/day_ahead_prices_nl_hourly_histogram.html' | relative_url }}" frameborder='0' scrolling='no' height="600px" width="100%" style="border: 1px dashed grey;"></iframe>
+</div>
 
 ---
 
