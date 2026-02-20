@@ -6,6 +6,8 @@ import cvxpy as cp
 import numpy as np
 from HEMS.base import FlexibleLoad
 
+from .const import DT_DEFAULT
+
 
 class Battery(FlexibleLoad):
     """A battery model representing an energy storage system in the HEMS.
@@ -23,7 +25,7 @@ class Battery(FlexibleLoad):
     def __init__(
         self,
         T: int,
-        dt: float = 0.25,
+        dt: float = DT_DEFAULT,
         name: str = "Battery",
         E_max: float = 13.5,
         P_ch_max: float = 5.0,

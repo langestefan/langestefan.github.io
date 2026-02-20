@@ -11,6 +11,39 @@ import numpy as np
 import pandas as pd
 import requests
 
+from .const import DT_DEFAULT
+
+
+def resample_weather(
+    df: pd.DataFrame,
+    dt: float = DT_DEFAULT,
+) -> pd.DataFrame:
+    """Resample weather data to the target time step resolution.
+
+    Uses linear interpolation for all columns (irradiance, temperature,
+    wind speed).  The resampled index is constructed so that the first
+    timestamp matches the original start and the last included timestamp
+    falls *before* (or on) the original end.
+
+    Args:
+        df: Weather DataFrame with a timezone-aware ``DatetimeIndex`` and
+            numeric columns (e.g. ghi, dni, dhi, temp_air, wind_speed).
+        dt: Target time step in hours (default :data:`DT_DEFAULT` = 0.25 h).
+
+    Returns:
+        pd.DataFrame: Resampled weather data at the requested resolution.
+    """
+    freq_minutes = int(dt * 60)
+    freq = f"{freq_minutes}min"
+
+    # Resample and linearly interpolate
+    df_resampled = df.resample(freq).interpolate(method="linear")
+
+    # Drop any trailing NaN rows that can appear at the boundary
+    df_resampled = df_resampled.dropna()
+
+    return df_resampled
+
 
 def fetch_open_meteo(
     latitude: float,
