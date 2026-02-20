@@ -5,6 +5,8 @@ Base load classes for the HEMS system.
 import cvxpy as cp
 import numpy as np
 
+from .const import T_DEFAULT
+
 
 class GenericLoad:
     """A generic load class representing a load in the HEMS system.
@@ -67,3 +69,27 @@ class FixedLoad(GenericLoad):
         super().__init__(name, len(power_profile))
         self.P = cp.Parameter(self.T, nonneg=True)
         self.P.value = power_profile
+
+
+class BaseLoad(FixedLoad):
+    """A base load that represents non-flexible, non-controllable consumption.
+
+    This class is a specific type of fixed load that represents the baseline
+    energy consumption in the home. It can be used to model essential loads
+    that must be met regardless of optimization decisions.
+    """
+
+    def __init__(self, name: str, P_base: np.ndarray | float = 0.5):
+        """Initialize a base load with a fixed power profile.
+
+        Args:
+            name (str): Name identifier for the load.
+            P_base (np.ndarray | float): Power consumption profile (kW) for each
+                time step. If a single float is provided, it will be repeated
+                for all time steps.
+        """
+        if isinstance(P_base, (int, float)):
+            power_profile = np.full(T_DEFAULT, P_base)
+        else:
+            power_profile = P_base
+        super().__init__(name, power_profile)

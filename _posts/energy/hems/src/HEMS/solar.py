@@ -18,6 +18,8 @@ import pvlib
 from HEMS.base import GenericLoad
 from pvlib.location import Location
 
+from .const import DT_DEFAULT
+
 
 class Solar(GenericLoad):
     """A solar PV generation model for the HEMS system.
@@ -35,7 +37,7 @@ class Solar(GenericLoad):
     def __init__(
         self,
         T: int,
-        dt: float = 0.25,
+        dt: float = DT_DEFAULT,
         name: str = "Solar",
         # --- array physical parameters ---
         surface_tilt: float = 35.0,

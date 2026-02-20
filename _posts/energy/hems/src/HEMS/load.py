@@ -6,6 +6,8 @@ import cvxpy as cp
 import numpy as np
 from HEMS.battery import Battery
 
+from .const import DT_DEFAULT
+
 
 class EV(Battery):
     """An electric vehicle load that can be scheduled for charging.
@@ -19,7 +21,7 @@ class EV(Battery):
     def __init__(
         self,
         T: int,
-        dt: float = 0.25,
+        dt: float = DT_DEFAULT,
         name: str = "EV",
         E_max: float = 50.0,
         P_ch_max: float = 7.0,
