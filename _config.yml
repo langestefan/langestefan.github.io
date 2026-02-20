@@ -187,6 +187,7 @@ exclude:
   - purgecss.config.js
   - README.md
   - readme_preview/
+  - _posts/**/*.ipynb
   - vendor
 keep_files:
   - CNAME

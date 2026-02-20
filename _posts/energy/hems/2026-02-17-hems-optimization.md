@@ -4,6 +4,7 @@ title: "Mixed-Integer Home Energy Management with CVXPY + HiGHS in the Browser"
 description: "An interactive MIP demo using CVXPY's Disciplined Parameterized Programming (DPP) for battery, EV, and solar PV scheduling with real Dutch day-ahead prices — solved entirely in-browser via Pyodide"
 tags: energy optimization pyodide mip
 categories: energy
+published: false
 giscus_comments: true
 date: 2026-02-17
 featured: true
