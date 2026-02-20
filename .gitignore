@@ -13,3 +13,6 @@ vendor
 .idea
 _posts/energy/day-ahead-prices-nl/data
 Manifest-**.toml
+archive
+*.egg-info
+*.pyc
