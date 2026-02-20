@@ -107,7 +107,7 @@ def fetch_open_meteo(
     hourly = payload["hourly"]
 
     idx = pd.DatetimeIndex(pd.to_datetime(hourly["time"]), name="time").tz_localize(
-        timezone
+        timezone, ambiguous="NaT", nonexistent="NaT"
     )
 
     df = pd.DataFrame(
@@ -120,6 +120,9 @@ def fetch_open_meteo(
         },
         index=idx,
     )
+
+    # Drop rows with NaT index (non-existent DST transition times)
+    df = df[df.index.notna()]
 
     # Replace any None values with 0 (can occur for recent/partial data)
     df = df.fillna(0.0)
