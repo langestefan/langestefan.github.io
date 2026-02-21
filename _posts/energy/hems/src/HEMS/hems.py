@@ -5,6 +5,20 @@ The :class:`HEMS` object owns a single CVXPY problem that is compiled
 once and can be re-solved cheaply by updating parameter values only
 (DPP-compliant warm-starting).
 
+Cost model (NL dynamic electricity contracts)
+----------------------------------------------
+The consumer-facing electricity cost has several components:
+
+.. math::
+
+    \\text{import price}_t = (\\text{spot}_t + \\text{procurement}
+    + \\text{energy tax}) \\times (1 + \\text{VAT})
+
+    \\text{export price}_t = \\text{spot}_t + \\text{sell-back credit}
+
+where **spot** is the day-ahead market price (time-varying parameter),
+and the remaining terms are contract/regulatory constants.
+
 Typical usage::
 
     hems = HEMS(
@@ -12,7 +26,12 @@ Typical usage::
         pvs=[solar],
         evs=[ev],
         battery=battery,
-        price=price_signal,
+        price=spot_prices,
+        procurement_fee=0.0248,      # Tibber
+        sell_back_credit=0.0000,
+        energy_tax=0.0916,           # NL 2025
+        vat=0.21,
+        monthly_fixed_cost=5.99,
         objective="cost",
     )
 
@@ -63,7 +82,33 @@ class HEMS:
 
         P_grid[t] = Σ P_load[t] + Σ P_ev[t] + P_bat[t] - Σ P_pv[t]
         P_grid = P_import - P_export        (both ≥ 0)
+
+    Cost model (for ``"cost"`` objective)::
+
+        import_price[t] = (spot[t] + procurement_fee + energy_tax) × (1 + vat)
+        export_price[t] = spot[t] + sell_back_credit
+        objective = min  Σ dt × (import_price[t] × P_import[t]
+                                - export_price[t] × P_export[t])
     """
+
+    # --- Supplier presets (NL, Feb 2026 tariffs) ------------------
+    SUPPLIERS: dict[str, dict] = {
+        "Tibber": {
+            "procurement_fee": 0.0248,
+            "sell_back_credit": 0.0000,
+            "monthly_fixed_cost": 5.99,
+        },
+        "Zonneplan": {
+            "procurement_fee": 0.0200,
+            "sell_back_credit": 0.0200,
+            "monthly_fixed_cost": 6.25,
+        },
+        "Frank Energie": {
+            "procurement_fee": 0.0182,
+            "sell_back_credit": 0.0182,
+            "monthly_fixed_cost": 7.25,
+        },
+    }
 
     def __init__(
         self,
@@ -74,9 +119,13 @@ class HEMS:
         pvs: Sequence[Solar] | None = None,
         evs: Sequence[EV] | None = None,
         battery: Battery | None = None,
-        # --- economic ---
+        # --- economic (NL cost model) ---
         price: np.ndarray | None = None,
-        feed_in_price: np.ndarray | float = 0.0,
+        procurement_fee: float = 0.0,
+        sell_back_credit: float = 0.0,
+        energy_tax: float = 0.0,
+        vat: float = 0.0,
+        monthly_fixed_cost: float = 0.0,
         # --- objective ---
         objective: str | Objective = Objective.COST,
         # --- solver ---
@@ -98,9 +147,20 @@ class HEMS:
                 generation injected into the home.
             evs: Electric vehicles (:class:`EV`).
             battery: A single :class:`Battery` (home storage).
-            price: Electricity import price [€/kWh], shape ``(T,)``.
-                Required for ``"cost"`` objective.
-            feed_in_price: Feed-in tariff [€/kWh].  Scalar or ``(T,)`` array.
+            price: Day-ahead spot / market price [€/kWh], shape ``(T,)``.
+                This is the **wholesale** price *before* any supplier
+                markup, taxes, or VAT.
+            procurement_fee: Supplier per-kWh markup on import [€/kWh].
+            sell_back_credit: Per-kWh credit added to spot for
+                exported electricity [€/kWh].
+            energy_tax: Per-kWh energy tax on import [€/kWh]
+                (NL: *energiebelasting*).
+            vat: Value-added tax fraction applied to
+                ``(spot + procurement_fee)`` on import (e.g. ``0.21``
+                for 21 % BTW).
+            monthly_fixed_cost: Fixed monthly supplier fee [€/month].
+                Does not affect scheduling but is included in
+                :meth:`summary`.
             objective: Optimisation goal — ``"cost"``,
                 ``"self_consumption"``, or ``"self_reliance"``.
             solver: CVXPY solver name.
@@ -113,6 +173,13 @@ class HEMS:
         self.solver = solver
         self.dt = dt
         self.objective_type = Objective(objective)
+
+        # --- Cost model constants (baked into the compiled problem) ---
+        self.procurement_fee = float(procurement_fee)
+        self.sell_back_credit = float(sell_back_credit)
+        self.energy_tax = float(energy_tax)
+        self.vat = float(vat)
+        self.monthly_fixed_cost = float(monthly_fixed_cost)
 
         # --- Infer T ---
         all_components: list[GenericLoad] = (
@@ -135,18 +202,12 @@ class HEMS:
                     f"Component '{comp.name}' has T={comp.T}, expected T={self.T}."
                 )
 
-        # --- Price parameters ---
-        self.price = cp.Parameter(self.T, nonneg=True, name="price_EUR_kWh")
+        # --- Spot-price parameter (updated between daily solves) ---
+        self.price = cp.Parameter(self.T, nonneg=True, name="spot_EUR_kWh")
         if price is not None:
             self.price.value = np.asarray(price, dtype=float)
         else:
             self.price.value = np.zeros(self.T)
-
-        feed_in = np.broadcast_to(
-            np.asarray(feed_in_price, dtype=float), (self.T,)
-        ).copy()
-        self.feed_in_price = cp.Parameter(self.T, nonneg=True, name="feed_in_EUR_kWh")
-        self.feed_in_price.value = feed_in
 
         # --- Grid power split ---
         self.P_import = cp.Variable(self.T, nonneg=True, name="P_import_kW")
@@ -203,13 +264,38 @@ class HEMS:
     def _build_objective(self) -> cp.Minimize | cp.Maximize:
         """Construct the CVXPY objective expression.
 
+        For the **COST** objective the full NL-style cost model is used:
+
+        .. math::
+
+            \\text{import\\_price}_t =
+                (\\text{spot}_t + \\text{procurement}
+                + \\text{energy\\_tax})
+                \\times (1 + \\text{vat})
+
+            \\text{export\\_price}_t =
+                \\text{spot}_t + \\text{sell\\_back\\_credit}
+
         Returns:
             CVXPY objective (Minimize or Maximize).
         """
         if self.objective_type == Objective.COST:
-            # min  Σ dt * (price * P_import  -  feed_in * P_export)
-            cost_import = self.dt * (self.price @ self.P_import)
-            cost_export = self.dt * (self.feed_in_price @ self.P_export)
+            # import_price[t] = (spot[t] + procurement + energy_tax) * (1+vat)
+            #                 = spot[t]*(1+vat) + (procurement+energy_tax)*(1+vat)
+            vf = 1.0 + self.vat  # VAT multiplier
+            import_adder = (self.procurement_fee + self.energy_tax) * vf  # €/kWh const
+
+            cost_import = self.dt * (
+                vf * (self.price @ self.P_import)  # time-varying
+                + import_adder * cp.sum(self.P_import)  # constant per-kWh
+            )
+
+            # export_price[t] = spot[t] + sell_back_credit
+            cost_export = self.dt * (
+                self.price @ self.P_export
+                + self.sell_back_credit * cp.sum(self.P_export)
+            )
+
             return cp.Minimize(cost_import - cost_export)
 
         elif self.objective_type == Objective.SELF_CONSUMPTION:
@@ -244,8 +330,14 @@ class HEMS:
                 ``cp.Problem.solve()`` (e.g. ``verbose=True``).
 
         Returns:
-            dict: Summary with keys ``status``, ``cost``, ``P_import``,
-            ``P_export``.
+            dict with keys:
+
+            - ``status`` – solver status string
+            - ``cost`` – net energy cost [€] (objective value)
+            - ``cost_import`` – total import cost [€]
+            - ``cost_export`` – total export revenue [€]
+            - ``P_import`` – import power profile [kW]
+            - ``P_export`` – export power profile [kW]
 
         Raises:
             RuntimeError: If the solver reports an infeasible or
@@ -259,11 +351,30 @@ class HEMS:
                 f"HEMS optimisation failed: status={self.problem.status}"
             )
 
+        imp = self.P_import.value.copy()
+        exp = self.P_export.value.copy()
+        spot = self.price.value
+
+        # --- Compute cost breakdown ---
+        if self.objective_type == Objective.COST:
+            vf = 1.0 + self.vat
+            ia = (self.procurement_fee + self.energy_tax) * vf
+            cost_import = float(self.dt * (vf * (spot @ imp) + ia * np.sum(imp)))
+            cost_export = float(
+                self.dt * (spot @ exp + self.sell_back_credit * np.sum(exp))
+            )
+        else:
+            # For non-cost objectives, report raw spot costs only
+            cost_import = float(self.dt * (spot @ imp))
+            cost_export = float(self.dt * (spot @ exp))
+
         return {
             "status": self.problem.status,
-            "cost": self.problem.value,
-            "P_import": self.P_import.value.copy(),
-            "P_export": self.P_export.value.copy(),
+            "cost": float(self.problem.value),
+            "cost_import": cost_import,
+            "cost_export": cost_export,
+            "P_import": imp,
+            "P_export": exp,
         }
 
     # ------------------------------------------------------------------
@@ -328,12 +439,16 @@ class HEMS:
         return total
 
     def summary(self) -> str:
-        """Return a human-readable summary of the last solve."""
+        """Return a human-readable summary of the last solve.
+
+        Includes a cost breakdown when the objective is ``COST``.
+        """
         if self.problem.status is None:
             return "Problem has not been solved yet."
 
         imp = self.P_import.value
         exp = self.P_export.value
+        spot = self.price.value
         lines = [
             f"HEMS Summary  (objective={self.objective_type.value})",
             f"  Status       : {self.problem.status}",
@@ -343,6 +458,7 @@ class HEMS:
             f"  Grid export  : {np.sum(exp) * self.dt:.1f} kWh  "
             f"(peak {exp.max():.2f} kW)",
         ]
+
         if self.pvs:
             pv_total = np.sum(self.total_pv_generation) * self.dt
             lines.append(f"  PV generation: {pv_total:.1f} kWh")
@@ -351,6 +467,7 @@ class HEMS:
                 f"  Self-consumed: {self_consumed:.1f} kWh  "
                 f"({self_consumed / max(pv_total, 1e-9) * 100:.1f}%)"
             )
+
         if self.battery is not None and self.battery.E.value is not None:
             lines.append(
                 f"  Battery SoC  : {self.battery.E.value[0]:.1f} → "
@@ -362,4 +479,43 @@ class HEMS:
                     f"  {ev.name} SoC   : {ev.E.value[0]:.1f} → "
                     f"{ev.E.value[-1]:.1f} kWh"
                 )
+
+        # --- Cost breakdown (COST objective) ---
+        if self.objective_type == Objective.COST:
+            vf = 1.0 + self.vat
+            import_kwh = np.sum(imp) * self.dt
+            export_kwh = np.sum(exp) * self.dt
+
+            spot_import = self.dt * (spot @ imp)
+            proc_cost = self.procurement_fee * import_kwh
+            tax_cost = self.energy_tax * import_kwh
+            subtotal = spot_import + proc_cost + tax_cost
+            vat_import = self.vat * subtotal
+            total_import = subtotal + vat_import
+
+            spot_export = self.dt * (spot @ exp)
+            sbc_export = self.sell_back_credit * export_kwh
+            total_export = spot_export + sbc_export
+
+            lines += [
+                "",
+                "  --- Cost breakdown (import) ---",
+                f"  Spot × import : € {spot_import:7.4f}",
+                f"  + Procurement : € {proc_cost:7.4f}  "
+                f"({self.procurement_fee:.4f} €/kWh)",
+                f"  + Energy tax  : € {tax_cost:7.4f}  ({self.energy_tax:.4f} €/kWh)",
+                f"  + VAT ({self.vat * 100:.0f}%)    : € {vat_import:7.4f}  "
+                f"(on all above)",
+                f"  = Import cost : € {total_import:7.4f}",
+                "  --- Cost breakdown (export) ---",
+                f"  + Sell-back   : € {sbc_export:7.4f}  "
+                f"({self.sell_back_credit:.4f} €/kWh)",
+                f"  = Export rev. : € {total_export:7.4f}",
+                f"  Net cost      : € {total_import - total_export:7.4f}",
+            ]
+            if self.monthly_fixed_cost > 0:
+                lines.append(
+                    f"  Monthly fixed : € {self.monthly_fixed_cost:7.2f}/month"
+                )
+
         return "\n".join(lines)

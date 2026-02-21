@@ -46,6 +46,10 @@ class Battery(FlexibleLoad):
             eta_dis (float): Discharging efficiency (0-1).
         """
         super().__init__(name, T)
+        # Override the nonneg P from FlexibleLoad: battery net power
+        # (P = P_ch − P_dis) must be free so that discharging (P < 0)
+        # is feasible.
+        self.P = cp.Variable(T, name=f"{name}_P_kW")
         self.dt = dt
         self.E_max = E_max
         self.P_ch_max = P_ch_max
