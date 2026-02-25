@@ -87,28 +87,39 @@ class EV(Battery):
     def constraints(self) -> list:
         """Return the CVXPY constraints for the EV.
 
-        Extends the base ``Battery`` constraints with availability-based
-        power limits.  All constraints are DPP-compliant: parameters
-        (self.a, self.u) appear only as coefficients; variables (P_ch,
-        P_dis, E, z) appear linearly throughout.
+        Rewrites Battery constraints to skip the binary variable ``z`` when
+        the EV is charge-only (``P_dis_max == 0``).  This avoids unnecessary
+        integer variables, which is critical for the 32-bit WASM scipy/HiGHS
+        solver where too many booleans can cause overflow.
 
         Returns:
             list: List of CVXPY constraints.
         """
-        # Start from the core battery constraints (SoC dynamics already
-        # include the trip energy via the inherited E_drain parameter).
-        constraints = super().constraints()
+        c: list = []
 
-        # --- Power limits with availability ---
-        # Availability is enforced via separate linear inequalities so that the
-        # product a[t]*z[t] (parameter * variable) never appears — keeping DPP.
-        #   P_ch[t] <= P_ch_max * a[t]           (a=0 blocks charging when away)
-        #   P_dis[t] <= P_dis_max * a[t]          (a=0 blocks discharging when away)
-        constraints += [
-            self.P_ch <= cp.multiply(self.a, np.full(self.T, self.P_ch_max))
+        # SoC dynamics (same as Battery)
+        c += [self.E[0] == self.E_0]
+        c += [
+            self.E[1:]
+            == self.E[:-1]
+            + self.dt * (self.eta_ch * self.P_ch - (1.0 / self.eta_dis) * self.P_dis)
+            - self.E_drain
         ]
-        constraints += [
-            self.P_dis <= cp.multiply(self.a, np.full(self.T, self.P_dis_max))
-        ]
+        c += [self.E >= 0, self.E <= self.E_max]
+        c += [self.E[self.T] >= self.E_T]
+        c += [self.P == self.P_ch - self.P_dis]
 
-        return constraints
+        # Charge-only EVs don't need the binary z variable
+        if self.P_dis_max > 0:
+            c += [self.P_ch <= self.P_ch_max * self.z]
+            c += [self.P_dis <= self.P_dis_max * (1 - self.z)]
+        else:
+            c += [self.P_ch <= self.P_ch_max]
+            c += [self.P_dis == 0]
+
+        # Availability constraints
+        c += [self.P_ch <= cp.multiply(self.a, np.full(self.T, self.P_ch_max))]
+        if self.P_dis_max > 0:
+            c += [self.P_dis <= cp.multiply(self.a, np.full(self.T, self.P_dis_max))]
+
+        return c

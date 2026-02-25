@@ -31,7 +31,6 @@ Typical usage::
         sell_back_credit=0.0000,
         energy_tax=0.0916,           # NL 2025
         vat=0.21,
-        monthly_fixed_cost=5.99,
         objective="cost",
     )
 
@@ -96,17 +95,14 @@ class HEMS:
         "Tibber": {
             "procurement_fee": 0.0248,
             "sell_back_credit": 0.0000,
-            "monthly_fixed_cost": 5.99,
         },
         "Zonneplan": {
             "procurement_fee": 0.0200,
             "sell_back_credit": 0.0200,
-            "monthly_fixed_cost": 6.25,
         },
         "Frank Energie": {
             "procurement_fee": 0.0182,
             "sell_back_credit": 0.0182,
-            "monthly_fixed_cost": 7.25,
         },
     }
 
@@ -125,7 +121,7 @@ class HEMS:
         sell_back_credit: float = 0.0,
         energy_tax: float = 0.0,
         vat: float = 0.0,
-        monthly_fixed_cost: float = 0.0,
+        net_metering: bool = False,
         # --- objective ---
         objective: str | Objective = Objective.COST,
         # --- solver ---
@@ -158,9 +154,6 @@ class HEMS:
             vat: Value-added tax fraction applied to
                 ``(spot + procurement_fee)`` on import (e.g. ``0.21``
                 for 21 % BTW).
-            monthly_fixed_cost: Fixed monthly supplier fee [€/month].
-                Does not affect scheduling but is included in
-                :meth:`summary`.
             objective: Optimisation goal — ``"cost"``,
                 ``"self_consumption"``, or ``"self_reliance"``.
             solver: CVXPY solver name.
@@ -179,7 +172,7 @@ class HEMS:
         self.sell_back_credit = float(sell_back_credit)
         self.energy_tax = float(energy_tax)
         self.vat = float(vat)
-        self.monthly_fixed_cost = float(monthly_fixed_cost)
+        self.net_metering = bool(net_metering)
 
         # --- Infer T ---
         all_components: list[GenericLoad] = (
@@ -203,7 +196,7 @@ class HEMS:
                 )
 
         # --- Spot-price parameter (updated between daily solves) ---
-        self.price = cp.Parameter(self.T, nonneg=True, name="spot_EUR_kWh")
+        self.price = cp.Parameter(self.T, name="spot_EUR_kWh")
         if price is not None:
             self.price.value = np.asarray(price, dtype=float)
         else:
@@ -276,9 +269,21 @@ class HEMS:
             \\text{export\\_price}_t =
                 \\text{spot}_t + \\text{sell\\_back\\_credit}
 
+        A small battery cycling penalty (€/kWh throughput) is added to
+        all objectives to prevent degenerate simultaneous or rapidly-
+        alternating charge / discharge.  This represents battery
+        degradation cost (~0.5 ct/kWh).
+
         Returns:
             CVXPY objective (Minimize or Maximize).
         """
+        # Cycling penalty — prevents degenerate battery oscillation
+        cycle_penalty = 0
+        if self.battery is not None:
+            cycle_penalty = (
+                0.005 * self.dt * cp.sum(self.battery.P_ch + self.battery.P_dis)
+            )
+
         if self.objective_type == Objective.COST:
             # import_price[t] = (spot[t] + procurement + energy_tax) * (1+vat)
             #                 = spot[t]*(1+vat) + (procurement+energy_tax)*(1+vat)
@@ -291,12 +296,19 @@ class HEMS:
             )
 
             # export_price[t] = spot[t] + sell_back_credit
-            cost_export = self.dt * (
-                self.price @ self.P_export
-                + self.sell_back_credit * cp.sum(self.P_export)
-            )
+            # (or import_price[t] if net metering is on)
+            if self.net_metering:
+                cost_export = self.dt * (
+                    vf * (self.price @ self.P_export)
+                    + import_adder * cp.sum(self.P_export)
+                )
+            else:
+                cost_export = self.dt * (
+                    self.price @ self.P_export
+                    + self.sell_back_credit * cp.sum(self.P_export)
+                )
 
-            return cp.Minimize(cost_import - cost_export)
+            return cp.Minimize(cost_import - cost_export + cycle_penalty)
 
         elif self.objective_type == Objective.SELF_CONSUMPTION:
             # max Σ (PV used locally) = max Σ (P_pv - P_export)
@@ -305,11 +317,13 @@ class HEMS:
             pv_total = 0
             for pv in self.pvs:
                 pv_total += cp.sum(pv.P)
-            return cp.Maximize(self.dt * (pv_total - cp.sum(self.P_export)))
+            return cp.Maximize(
+                self.dt * (pv_total - cp.sum(self.P_export)) - cycle_penalty
+            )
 
         elif self.objective_type == Objective.SELF_RELIANCE:
             # min Σ P_import
-            return cp.Minimize(self.dt * cp.sum(self.P_import))
+            return cp.Minimize(self.dt * cp.sum(self.P_import) + cycle_penalty)
 
         else:
             raise ValueError(f"Unknown objective: {self.objective_type}")
@@ -360,9 +374,12 @@ class HEMS:
             vf = 1.0 + self.vat
             ia = (self.procurement_fee + self.energy_tax) * vf
             cost_import = float(self.dt * (vf * (spot @ imp) + ia * np.sum(imp)))
-            cost_export = float(
-                self.dt * (spot @ exp + self.sell_back_credit * np.sum(exp))
-            )
+            if self.net_metering:
+                cost_export = float(self.dt * (vf * (spot @ exp) + ia * np.sum(exp)))
+            else:
+                cost_export = float(
+                    self.dt * (spot @ exp + self.sell_back_credit * np.sum(exp))
+                )
         else:
             # For non-cost objectives, report raw spot costs only
             cost_import = float(self.dt * (spot @ imp))
@@ -393,11 +410,11 @@ class HEMS:
         for the next horizon.
         """
         if self.battery is not None and self.battery.E.value is not None:
-            self.battery.E_0.value = float(self.battery.E.value[1])
+            self.battery.E_0.value = float(self.battery.E.value[-1])
 
         for ev in self.evs:
             if ev.E.value is not None:
-                ev.E_0.value = float(ev.E.value[1])
+                ev.E_0.value = float(ev.E.value[-1])
 
     # ------------------------------------------------------------------
     # Convenience properties
@@ -513,9 +530,4 @@ class HEMS:
                 f"  = Export rev. : € {total_export:7.4f}",
                 f"  Net cost      : € {total_import - total_export:7.4f}",
             ]
-            if self.monthly_fixed_cost > 0:
-                lines.append(
-                    f"  Monthly fixed : € {self.monthly_fixed_cost:7.2f}/month"
-                )
-
         return "\n".join(lines)
