@@ -37,7 +37,18 @@ ninja.data = [{
           handler: () => {
             window.location.href = "/repositories/";
           },
-        },{id: "post-dutch-day-ahead-electricity-prices-2019-2025",
+        },{id: "post-home-energy-management-with-cvxpy-highs-in-the-browser",
+      
+        title: "Home Energy Management with CVXPY + HiGHS in the Browser",
+      
+      description: "An interactive HEMS prototyping platform using CVXPY&#39;s Disciplined Parameterized Programming (DPP) for battery, EV, and solar PV scheduling with real Dutch day-ahead prices — solved entirely in-browser via Pyodide",
+      section: "Posts",
+      handler: () => {
+        
+          window.location.href = "/blog/2026/hems-optimization/";
+        
+      },
+    },{id: "post-dutch-day-ahead-electricity-prices-2019-2025",
       
         title: "Dutch Day-Ahead Electricity Prices (2019-2025)",
       
