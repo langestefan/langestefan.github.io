@@ -2,15 +2,11 @@
 layout: distill
 title: "Home Energy Management with CVXPY + HiGHS in the Browser"
 description: "An interactive HEMS prototyping platform using CVXPY's Disciplined Parameterized Programming (DPP) for battery, EV, and solar PV scheduling with real Dutch day-ahead prices — solved entirely in-browser via Pyodide"
-tags: energy optimization pyodide mip
+tags: energy optimization pyodide mip cvxpy highs hems home-energy-management
 categories: energy
 giscus_comments: true
-date: 2026-02-17
+date: 2026-02-25
 featured: true
-toc:
-  - name: Overview
-  - name: Interactive Demo
-  - name: How It Works
 authors:
   - name: Stefan de Lange
     affiliations:
