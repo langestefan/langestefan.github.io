@@ -1,4 +1,5 @@
 require "cgi"
+require "digest"
 
 # Injects this site's own stylesheet and scripts into every rendered page.
 #
@@ -19,10 +20,26 @@ module SiteAssets
 
   module_function
 
-  # Absolute-from-root URL that respects site.baseurl.
+  # Absolute-from-root URL that respects site.baseurl, with a content hash so a
+  # changed asset is actually re-fetched. Without this a browser holds the old
+  # copy indefinitely: the gems' own assets all ship "?v=<md5>", and these were
+  # the only stylesheets and scripts on the page without it.
   def asset_url(site, path)
     baseurl = site.config["baseurl"].to_s.chomp("/")
-    "#{baseurl}/#{path}"
+    "#{baseurl}/#{path}?v=#{digest(site, path)}"
+  end
+
+  # Digest of the file that produces `path`. assets/css/custom.css is generated
+  # from custom.scss, so the source is hashed rather than the build output,
+  # which does not exist in site.source.
+  def digest(site, path)
+    source = File.join(site.source, path)
+    source = source.sub(/\.css\z/, ".scss") if !File.exist?(source) && path.end_with?(".css")
+    return "0" unless File.exist?(source)
+
+    key = [source, File.mtime(source).to_i]
+    @digests ||= {}
+    @digests[key] ||= Digest::MD5.file(source).hexdigest[0, 16]
   end
 
   # Repository slug used to build "view source" links, e.g.
