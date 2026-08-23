@@ -133,6 +133,127 @@ d-article aside {
 }
 
 /* ---------------------------------------------------------------------------
+ * HEMS block diagram
+ * The SVG is inlined into the post (not <img>), because an <img>-loaded SVG is
+ * a separate document: neither this stylesheet nor the site's data-theme
+ * attribute reaches inside it. Inlined, every colour can come from a custom
+ * property and the figure follows the theme toggle like everything else.
+ * --------------------------------------------------------------------------- */
+
+.hems-figure {
+  --hf-stroke: #1f2328;
+  --hf-text: #1f2328;
+  --hf-muted: #5b6169;
+  --hf-info: #3f72a8;
+  --hf-plain: #ffffff;
+  --hf-hems: #e6edf5;
+  --hf-pv: #f3e7cb;
+  --hf-bess: #dceae1;
+  --hf-ev: #dbe4f0;
+  --hf-hp: #f2ded9;
+  --hf-loads: #ebecee;
+  --hf-legend-bg: #fafafa;
+  --hf-legend-border: #c9ccd1;
+
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 760px;
+  margin: 0 auto;
+  font-family: inherit;
+
+  .hf-box {
+    stroke: var(--hf-stroke);
+    stroke-width: 1.6;
+  }
+  .hf-box-strong {
+    stroke: var(--hf-stroke);
+    stroke-width: 2.2;
+  }
+  .hf-t0 {
+    font-size: 19px;
+    font-weight: 700;
+    fill: var(--hf-text);
+    text-anchor: middle;
+  }
+  .hf-t1 {
+    font-size: 15px;
+    font-weight: 600;
+    fill: var(--hf-text);
+    text-anchor: middle;
+  }
+  .hf-lbl {
+    font-size: 10.5px;
+    fill: var(--hf-muted);
+  }
+  .hf-power {
+    stroke: var(--hf-stroke);
+    stroke-width: 2.2;
+    fill: none;
+  }
+  .hf-info {
+    stroke: var(--hf-info);
+    stroke-width: 2.4;
+    fill: none;
+    stroke-dasharray: 7 4.5;
+  }
+  .hf-bus {
+    stroke: var(--hf-stroke);
+    stroke-width: 5;
+    stroke-linecap: round;
+    fill: none;
+  }
+  .hf-arrow-power {
+    fill: var(--hf-stroke);
+  }
+  .hf-arrow-info {
+    fill: var(--hf-info);
+  }
+  .hf-legend {
+    fill: var(--hf-legend-bg);
+    stroke: var(--hf-legend-border);
+    stroke-width: 1;
+  }
+  .hf-fill-plain {
+    fill: var(--hf-plain);
+  }
+  .hf-fill-hems {
+    fill: var(--hf-hems);
+  }
+  .hf-fill-pv {
+    fill: var(--hf-pv);
+  }
+  .hf-fill-bess {
+    fill: var(--hf-bess);
+  }
+  .hf-fill-ev {
+    fill: var(--hf-ev);
+  }
+  .hf-fill-hp {
+    fill: var(--hf-hp);
+  }
+  .hf-fill-loads {
+    fill: var(--hf-loads);
+  }
+}
+
+html[data-theme="dark"] .hems-figure {
+  --hf-stroke: #c9d1d9;
+  --hf-text: #c9d1d9;
+  --hf-muted: #9aa2ab;
+  --hf-info: #6ea8dc;
+  --hf-plain: rgba(255, 255, 255, 0.03);
+  --hf-hems: #22303f;
+  --hf-pv: #4a4029;
+  --hf-bess: #263b31;
+  --hf-ev: #26364a;
+  --hf-hp: #46302c;
+  --hf-loads: #2c2f34;
+  --hf-legend-bg: rgba(255, 255, 255, 0.04);
+  --hf-legend-border: #3d434a;
+}
+
+/* ---------------------------------------------------------------------------
  * Code blocks
  * --------------------------------------------------------------------------- */
 

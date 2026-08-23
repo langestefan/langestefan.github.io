@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" width="760" height="400"
+     class="hems-figure" role="img"
+     aria-label="Block diagram of a home energy management system: weather and price inputs feed the HEMS, which reads the meter and controls PV, battery, EV and heat pump attached to a common AC bus.">
+  <defs>
+    <marker id="hf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="hf-arrow-power"/>
+    </marker>
+    <marker id="hf-arrow-info" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="hf-arrow-info"/>
+    </marker>
+  </defs>
+
+  <!-- external inputs and HEMS -->
+  <rect x="20" y="14" width="115" height="52" rx="2" class="hf-box hf-fill-plain"/>
+  <text x="77" y="37" class="hf-t1">Weather</text>
+  <text x="77" y="57" class="hf-t1">Prices</text>
+  <rect x="155" y="14" width="570" height="52" rx="2" class="hf-box-strong hf-fill-hems"/>
+  <text x="440" y="47" class="hf-t0">HEMS</text>
+  <line x1="135" y1="40" x2="155" y2="40" class="hf-info" marker-end="url(#hf-arrow-info)"/>
+
+  <!-- information links -->
+  <line x1="215" y1="190" x2="215" y2="66" class="hf-info" marker-end="url(#hf-arrow-info)"/>
+  <line x1="360" y1="120" x2="360" y2="66" class="hf-info" marker-start="url(#hf-arrow-info)" marker-end="url(#hf-arrow-info)"/>
+  <line x1="510" y1="120" x2="510" y2="66" class="hf-info" marker-start="url(#hf-arrow-info)" marker-end="url(#hf-arrow-info)"/>
+  <path d="M435,66 L435,285 L415,285" class="hf-info" marker-end="url(#hf-arrow-info)"/>
+  <path d="M585,66 L585,285 L565,285" class="hf-info" marker-end="url(#hf-arrow-info)"/>
+
+  <!-- grid, meter, AC bus -->
+  <rect x="20" y="190" width="85" height="50" rx="2" class="hf-box hf-fill-plain"/>
+  <text x="62" y="221" class="hf-t1">Grid</text>
+  <rect x="165" y="190" width="100" height="50" rx="2" class="hf-box hf-fill-plain"/>
+  <text x="215" y="221" class="hf-t1">Meter</text>
+  <line x1="105" y1="215" x2="165" y2="215" class="hf-power" marker-start="url(#hf-arrow)" marker-end="url(#hf-arrow)"/>
+  <line x1="265" y1="215" x2="333" y2="215" class="hf-power" marker-start="url(#hf-arrow)" marker-end="url(#hf-arrow)"/>
+  <line x1="330" y1="215" x2="725" y2="215" class="hf-bus"/>
+  <text x="723" y="203" class="hf-lbl" text-anchor="end">AC bus</text>
+
+  <!-- above the bus: PV and BESS -->
+  <rect x="310" y="120" width="105" height="50" rx="2" class="hf-box hf-fill-pv"/>
+  <text x="362" y="151" class="hf-t1">PV</text>
+  <line x1="360" y1="170" x2="360" y2="212" class="hf-power" marker-end="url(#hf-arrow)"/>
+
+  <rect x="460" y="120" width="105" height="50" rx="2" class="hf-box hf-fill-bess"/>
+  <text x="512" y="151" class="hf-t1">BESS</text>
+  <line x1="510" y1="170" x2="510" y2="212" class="hf-power" marker-start="url(#hf-arrow)" marker-end="url(#hf-arrow)"/>
+
+  <!-- below the bus: EV, HP, loads -->
+  <line x1="360" y1="218" x2="360" y2="260" class="hf-power" marker-start="url(#hf-arrow)" marker-end="url(#hf-arrow)"/>
+  <rect x="310" y="260" width="105" height="50" rx="2" class="hf-box hf-fill-ev"/>
+  <text x="362" y="291" class="hf-t1">EV</text>
+
+  <line x1="510" y1="218" x2="510" y2="260" class="hf-power" marker-end="url(#hf-arrow)"/>
+  <rect x="460" y="260" width="105" height="50" rx="2" class="hf-box hf-fill-hp"/>
+  <text x="512" y="291" class="hf-t1">HP</text>
+
+  <line x1="660" y1="218" x2="660" y2="260" class="hf-power" marker-end="url(#hf-arrow)"/>
+  <rect x="610" y="260" width="105" height="50" rx="2" class="hf-box hf-fill-loads"/>
+  <text x="662" y="291" class="hf-t1">Loads</text>
+
+  <!-- legend -->
+  <rect x="20" y="288" width="200" height="84" rx="2" class="hf-legend"/>
+  <line x1="34" y1="310" x2="68" y2="310" class="hf-bus"/>
+  <text x="78" y="314" class="hf-lbl">AC bus</text>
+  <line x1="34" y1="332" x2="68" y2="332" class="hf-power" marker-end="url(#hf-arrow)"/>
+  <text x="78" y="336" class="hf-lbl">Electrical power</text>
+  <line x1="34" y1="354" x2="68" y2="354" class="hf-info" marker-end="url(#hf-arrow-info)"/>
+  <text x="78" y="358" class="hf-lbl">Information</text>
+</svg>
