@@ -239,7 +239,6 @@ exclude:
   - README.md
   - readme_preview/
   - _posts/**/*.ipynb
-  - INSTALL.md
   - gems/
   - migrations/
   - vendor
