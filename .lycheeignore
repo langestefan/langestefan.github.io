@@ -1,3 +1,8 @@
 # Sites that reject automated requests (403/429) regardless of user-agent.
 linkedin.com
 reddit.com
+
+# URLs built at runtime in post JavaScript: these contain ${...} template
+# placeholders and are not real addresses. The HEMS demo builds its
+# open-meteo query this way.
+\$\{

@@ -51,5 +51,7 @@ jobs:
           # Skipped: files whose links are Liquid-templated or otherwise not
           # real URLs, _pages/about_me.md (unused sample, excluded from the
           # build, still carries the template's /al-folio/ baseurl links), and
-          # node_modules (present only in local runs).
-          args: --user-agent 'curl/7.54' --max-retries 3 --retry-wait-time 2 --exclude-path README.md --exclude-path _pages/404.md --exclude-path _pages/blog.md --exclude-path '_posts/energy/day-ahead-prices-nl/2026-02-09-day-ahead-prices-nl.md' --exclude-path _pages/about_me.md --exclude-path node_modules --verbose --no-progress './**/*.md' './**/*.html'
+          # node_modules (present only in local runs). The --exclude regex drops
+          # URLs containing a ${...} template placeholder: the HEMS demo builds
+          # its open-meteo query string in JavaScript at runtime.
+          args: --user-agent 'curl/7.54' --max-retries 3 --retry-wait-time 2 --exclude-path README.md --exclude-path _pages/404.md --exclude-path _pages/blog.md --exclude-path '_posts/energy/day-ahead-prices-nl/2026-02-09-day-ahead-prices-nl.md' --exclude-path _pages/about_me.md --exclude-path node_modules --exclude '\$\{' --verbose --no-progress './**/*.md' './**/*.html'
