@@ -169,7 +169,7 @@ disqus_shortname: al-folio # put your disqus shortname
 # If you have blog posts published on medium.com or other external sources,
 # you can display them in your blog by adding a link to the RSS feed.
 # Optional: Set default categories and tags for posts from each source.
-external_sources:
+# external_sources:
 #   - name: medium.com
 #     rss_url: https://medium.com/@al-folio/feed
 #     categories: [external-posts]
@@ -341,7 +341,7 @@ jekyll-archives:
     enabled: [year, tags, categories] # enables year, tag and category archives (remove if you need to disable one of them).
 
 display_tags: ["heatpumps", "solar", "physics", "math", "julia"] # these tags will be displayed on the front page of your blog
-display_categories: [""] # these categories will be displayed on the front page of your blog
+display_categories: [] # these categories will be displayed on the front page of your blog
 
 # -----------------------------------------------------------------------------
 # Jekyll Scholar
