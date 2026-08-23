@@ -103,6 +103,11 @@ d-byline .github-source {
    assets/js/sidenotes.js: a CSS counter cannot be used because the marker is
    nested in the prose while the aside must be a direct child of <d-article>,
    so the two never resolve to the same counter value. */
+/* Holds the note text until sidenotes.js lifts it into a real <aside>. */
+.sidenote-body {
+  display: none;
+}
+
 .sidenote-ref::after {
   content: attr(data-sidenote);
   vertical-align: super;
