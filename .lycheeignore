@@ -1,5 +1,3 @@
-_pages/404.md
-_pages/blog.md
-README.md
-https://www.linkedin.com/
-https://www.reddit.com/
+# Sites that reject automated requests (403/429) regardless of user-agent.
+linkedin.com
+reddit.com

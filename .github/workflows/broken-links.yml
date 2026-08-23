@@ -41,8 +41,6 @@ on:
 jobs:
   link-checker:
     runs-on: ubuntu-latest
-    # only run on the main repo
-    if: github.repository == 'alshedivat/al-folio'
     steps:
       - uses: actions/checkout@v4
 
@@ -50,8 +48,8 @@ jobs:
         uses: lycheeverse/lychee-action@v2.0.2
         with:
           fail: true
-          # removed md files that include liquid tags
-          # docs/releases is excluded because release notes link to the compare
-          # range for the tag they are about to create, which cannot resolve until
-          # the release is published
-          args: --user-agent 'curl/7.54' --max-retries 3 --retry-wait-time 2 --exclude-path README.md --exclude-path _pages/404.md --exclude-path _pages/blog.md --exclude-path '_posts/energy/day-ahead-prices-nl/2026-02-09-day-ahead-prices-nl.md' --verbose --no-progress './**/*.md' './**/*.html'
+          # Skipped: files whose links are Liquid-templated or otherwise not
+          # real URLs, _pages/about_me.md (unused sample, excluded from the
+          # build, still carries the template's /al-folio/ baseurl links), and
+          # node_modules (present only in local runs).
+          args: --user-agent 'curl/7.54' --max-retries 3 --retry-wait-time 2 --exclude-path README.md --exclude-path _pages/404.md --exclude-path _pages/blog.md --exclude-path '_posts/energy/day-ahead-prices-nl/2026-02-09-day-ahead-prices-nl.md' --exclude-path _pages/about_me.md --exclude-path node_modules --verbose --no-progress './**/*.md' './**/*.html'
