@@ -1,18 +1,24 @@
 _site
 .bundle
-.sass-cache
+.DS_store
+.idea
 .jekyll-cache
 .jekyll-metadata
-.DS_store
+.sass-cache
 .ruby-version
 .tweet-cache
-Gemfile.lock
-assets/libs/
+.venv
 node_modules/
 vendor
-.idea
-_posts/energy/day-ahead-prices-nl/data
+assets/libs/
+al-folio-upgrade-report.md
+
+# Python bytecode from bin/ helper scripts
+__pycache__/
+*.pyc
+*.egg-info
+
+# Site-specific: Julia environment resolution and post source data
 Manifest-**.toml
 archive
-*.egg-info
-*.pyc
+_posts/energy/day-ahead-prices-nl/data

@@ -1,0 +1,197 @@
+---
+# Site-owned styles, compiled by Jekyll to /assets/css/custom.css and injected
+# by _plugins/site_assets.rb.
+#
+# This file exists because al-folio v1 moved the theme into gems: the old
+# assets/css/main.scss import chain and the _sass/ partials this site used to
+# patch are now owned by al_folio_core. Keeping site styles in one local file
+# avoids shadowing any gem-owned stylesheet, so gem updates never conflict.
+---
+
+/* ---------------------------------------------------------------------------
+ * Heading anchors
+ * Paired with assets/js/heading-anchors.js, which wraps heading text in
+ * .heading-text-link and appends a .heading-anchor icon.
+ * --------------------------------------------------------------------------- */
+
+h1[id],
+h2[id],
+h3[id],
+h4[id],
+h5[id],
+h6[id] {
+  // Make heading text itself a clickable link
+  .heading-text-link {
+    color: var(--global-text-color) !important;
+    text-decoration: none !important;
+    border-bottom: none !important;
+
+    &:hover {
+      color: var(--global-text-color) !important;
+      text-decoration: underline !important;
+    }
+  }
+
+  // Link icon next to heading
+  .heading-anchor {
+    opacity: 0;
+    font-size: 0.7em;
+    margin-left: 0.3em;
+    vertical-align: middle;
+    text-decoration: none !important;
+    border-bottom: none !important;
+    color: var(--global-theme-color);
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      text-decoration: none !important;
+    }
+
+    &.copied {
+      opacity: 1;
+
+      &::after {
+        content: " copied!";
+        font-size: 0.75em;
+        color: var(--global-theme-color);
+      }
+    }
+  }
+
+  &:hover .heading-anchor {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Distill posts
+ * .post.distill is still the wrapper emitted by al_folio_distill's render
+ * template, so these selectors carry over from the v0 theme unchanged.
+ * --------------------------------------------------------------------------- */
+
+.post.distill p {
+  text-align: justify;
+}
+
+d-byline .github-source {
+  .github-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none !important;
+    border-bottom: none !important;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Code blocks
+ * --------------------------------------------------------------------------- */
+
+pre {
+  line-height: 1.5em;
+}
+
+/* ---------------------------------------------------------------------------
+ * GitHub-style markdown alerts
+ * Emitted by _plugins/markdown_alerts.rb via {% alert note %} ... {% endalert %}
+ * --------------------------------------------------------------------------- */
+
+.markdown-alert {
+  margin: 1em 0;
+  padding: 0.75em 1em;
+  background-color: var(--bg-secondary, #f8f8f8);
+  border-left: 4px solid;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.markdown-alert > .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 0.5em;
+}
+
+.markdown-alert > .pInfo {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-color: #539bf5;
+  background-color: rgba(83, 155, 245, 0.15);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-color: #986ee2;
+  background-color: rgba(152, 110, 226, 0.15);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-color: #c69026;
+  background-color: rgba(198, 144, 38, 0.15);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-color: #57ab5a;
+  background-color: rgba(87, 171, 90, 0.15);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-color: #e5534b;
+  background-color: rgba(229, 83, 75, 0.15);
+}
+
+.octicon {
+  transform: scale(1.1);
+  overflow: visible;
+  margin-right: 0.5em;
+}
+
+.octicon-info {
+  filter: invert(55%) sepia(55%) saturate(2060%) hue-rotate(191deg) brightness(99%) contrast(93%);
+}
+
+.octicon-tip {
+  filter: invert(58%) sepia(64%) saturate(351%) hue-rotate(73deg) brightness(89%) contrast(90%);
+}
+
+.octicon-important {
+  filter: invert(67%) sepia(41%) saturate(6791%) hue-rotate(225deg) brightness(92%) contrast(92%);
+}
+
+.octicon-caution {
+  filter: invert(45%) sepia(68%) saturate(2586%) hue-rotate(333deg) brightness(95%) contrast(88%);
+}
+
+.octicon-warning {
+  filter: invert(78%) sepia(17%) saturate(5107%) hue-rotate(350deg) brightness(85%) contrast(78%);
+}
+
+/* ---------------------------------------------------------------------------
+ * Theorem boxes
+ * --------------------------------------------------------------------------- */
+
+.theorem-box {
+  font-family: "TeX Gyre Termes", "Times", serif;
+  overflow-x: "word-wrap";
+  word-wrap: break-word;
+  background-color: rgba(240, 243, 250, 0.3);
+  border: 2px solid rgba(50, 50, 53, 0.5);
+  padding: 20px;
+  border-radius: 5px;
+  margin-bottom: 50px;
+}
+
+.theorem-box h3 {
+  margin-top: 0px;
+  padding: 0px;
+}
