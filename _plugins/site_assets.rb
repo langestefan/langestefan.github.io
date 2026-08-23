@@ -15,6 +15,7 @@ module SiteAssets
   CSS = "assets/css/custom.css".freeze
   HEADING_ANCHORS_JS = "assets/js/heading-anchors.js".freeze
   DISTILL_BUTTON_JS = "assets/js/distill-github-button.js".freeze
+  SIDENOTES_JS = "assets/js/sidenotes.js".freeze
 
   module_function
 
@@ -59,6 +60,7 @@ module SiteAssets
         tags << %(<script>window.__alGithubSourceUrl = "#{url}";</script>)
       end
       tags << %(<script defer src="#{asset_url(site, DISTILL_BUTTON_JS)}"></script>)
+      tags << %(<script defer src="#{asset_url(site, SIDENOTES_JS)}"></script>)
     end
 
     tags.join("\n")

@@ -91,6 +91,43 @@ d-byline .github-source {
 }
 
 /* ---------------------------------------------------------------------------
+ * Distill sidenotes
+ * <aside> inside <d-article> is placed in the gutter column by the Distill
+ * runtime. Two things it does not do: its colour is hardcoded to
+ * rgba(0,0,0,0.6), which disappears in dark mode, and sidenotes are unnumbered.
+ * The runtime injects its stylesheet at execution time, after this file loads,
+ * so the colour override needs !important to win.
+ * --------------------------------------------------------------------------- */
+
+/* The in-text anchor. Numbers come from data-sidenote, written at runtime by
+   assets/js/sidenotes.js: a CSS counter cannot be used because the marker is
+   nested in the prose while the aside must be a direct child of <d-article>,
+   so the two never resolve to the same counter value. */
+.sidenote-ref::after {
+  content: attr(data-sidenote);
+  vertical-align: super;
+  font-size: 0.7em;
+  line-height: 0;
+  margin-left: 0.15em;
+  color: var(--global-theme-color);
+  font-weight: 600;
+}
+
+d-article aside {
+  color: var(--global-text-color) !important;
+  opacity: 0.72;
+  font-size: 0.75rem;
+  line-height: 1.6em;
+
+  &::before {
+    content: attr(data-sidenote);
+    color: var(--global-theme-color);
+    font-weight: 600;
+    margin-right: 0.4em;
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * Code blocks
  * --------------------------------------------------------------------------- */
 
