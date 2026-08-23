@@ -1,3 +1,5 @@
+require "cgi"
+
 # Injects this site's own stylesheet and scripts into every rendered page.
 #
 # Why a plugin instead of overriding _includes/head.liquid and
@@ -62,6 +64,65 @@ module SiteAssets
     tags.join("\n")
   end
 
+  # "Cite this as" block for Distill posts.
+  #
+  # al_folio_core's post.liquid honours `citation: true`, but the Distill
+  # render template in al_folio_distill does not, so a distill post with
+  # citation: true silently renders no citation. This site's v0 theme patched
+  # the distill layout to include it; that layout no longer exists, so the
+  # block is built here and injected into <d-appendix> instead.
+  #
+  # The two lead-in sentences the stock include emits ("If you found this
+  # useful..." / "or as a BibTeX entry:") are intentionally omitted, matching
+  # the wording this site has used since 2025.
+  def citation_html(site, item)
+    cfg = site.config
+    first = cfg["first_name"].to_s
+    middle = cfg["middle_name"].to_s
+    last = cfg["last_name"].to_s
+    title = item.data["title"].to_s
+    date = item.data["date"]
+    return nil unless date.respond_to?(:strftime)
+
+    author = middle.empty? ? "#{last}, #{first}" : "#{last}, #{first} #{middle}"
+    site_title = cfg["title"].to_s
+    journal = (site_title.empty? || site_title == "blank") ? nil : site_title
+    url = "#{cfg["url"]}#{item.url}"
+
+    quote = +"#{author} (#{date.strftime("%b %Y")}). #{title}."
+    quote << " #{journal}." if journal
+    quote << " #{cfg["url"]}."
+
+    key = "#{last.downcase}#{date.strftime("%Y")}#{Jekyll::Utils.slugify(title)}"
+    bibtex = +"@article{#{key},\n"
+    bibtex << "  title   = {#{title}},\n"
+    bibtex << "  author  = {#{author}},\n"
+    bibtex << "  journal = {#{journal}},\n" if journal
+    bibtex << "  year    = {#{date.strftime("%Y")}},\n"
+    bibtex << "  month   = {#{date.strftime("%b")}},\n"
+    bibtex << "  url     = {#{url}}\n}"
+
+    <<~HTML
+      <br>
+      <hr>
+      <br>
+      <blockquote><p>#{CGI.escapeHTML(quote)}</p></blockquote>
+      <div class="language-bibtex highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#{CGI.escapeHTML(bibtex)}</code></pre></div></div>
+    HTML
+  end
+
+  def inject_citation(site, item, output)
+    return output unless distill?(item)
+    return output unless item.data["citation"]
+    return output unless output.include?("</d-appendix>")
+    return output if output.include?("language-bibtex")
+
+    html = citation_html(site, item)
+    return output unless html
+
+    output.sub("</d-appendix>", "#{html}</d-appendix>")
+  end
+
   def inject(site, item)
     output = item.output
     return unless output.is_a?(String)
@@ -71,6 +132,7 @@ module SiteAssets
 
     output = output.sub("</head>", "#{head_tags(site)}\n</head>") if output.include?("</head>")
     output = output.sub(%r{</body>}, "#{body_tags(site, item)}\n</body>") if output.include?("</body>")
+    output = inject_citation(site, item, output)
     item.output = output
   end
 end
