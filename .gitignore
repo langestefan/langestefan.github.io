@@ -22,3 +22,4 @@ __pycache__/
 Manifest-**.toml
 archive
 _posts/energy/day-ahead-prices-nl/data
+.vscode/settings.json

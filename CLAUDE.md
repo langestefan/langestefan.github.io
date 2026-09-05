@@ -79,14 +79,16 @@ Everything custom is injected rather than shadowing gem files. This is deliberat
 raise a conflict when a gem updates a file your local copy shadows, so every shadowed file is a
 silent-rot liability.
 
-| File                                 | Role                                                                                                                                                                                       |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `_plugins/site_assets.rb`            | `post_render` hook. Injects the stylesheet and scripts into every layout (page, post, distill), sets `window.__alGithubSourceUrl` per distill page, and builds the `citation: true` block. |
-| `assets/css/custom.scss`             | All site CSS in one file (heading anchors, justified distill paragraphs, GitHub byline button, markdown alerts, theorem boxes). Compiled to `assets/css/custom.css`.                       |
-| `assets/js/heading-anchors.js`       | Click-to-copy heading anchors. Uses an inline SVG — v1's `al_icons` ships FontAwesome/Academicons/Scholar Icons but **not** Tabler.                                                        |
-| `assets/js/distill-github-button.js` | "GitHub" source button in the distill byline. Waits for `<d-byline>` to hydrate.                                                                                                           |
-| `_plugins/include_code.rb`           | `{% include_code file="..." lang="julia" start=N end=M %}` — site-specific, no gem owns it.                                                                                                |
-| `_plugins/markdown_alerts.rb`        | `{% alert note %}` block tag that renders markdown inside the alert.                                                                                                                       |
+| File                                 | Role                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `_plugins/site_assets.rb`            | `post_render` hook. Injects the stylesheet and scripts into every layout (page, post, distill), sets `window.__alGithubSourceUrl` per distill page, and builds the `citation: true` block. Every injected URL carries a `?v=<md5>` built from the **source** file (`custom.scss`, not the compiled `custom.css`), so a changed asset is actually re-fetched. |
+| `assets/css/custom.scss`             | All site CSS in one file (heading anchors, justified distill paragraphs, GitHub byline button, markdown alerts, theorem boxes, sidenotes). Compiled to `assets/css/custom.css`.                                                                                                                                                                              |
+| `assets/js/heading-anchors.js`       | Click-to-copy heading anchors. Uses an inline SVG — v1's `al_icons` ships FontAwesome/Academicons/Scholar Icons but **not** Tabler.                                                                                                                                                                                                                          |
+| `assets/js/distill-github-button.js` | "GitHub" source button in the distill byline. Waits for `<d-byline>` to hydrate.                                                                                                                                                                                                                                                                             |
+| `_plugins/sidenote.rb`               | `{% sidenote %}…{% endsidenote %}` block tag. Emits only span-level markup at the point of use: a `.sidenote-ref` marker plus the note body in a hidden `.sidenote-body` sibling.                                                                                                                                                                            |
+| `assets/js/sidenotes.js`             | Lifts each `.sidenote-body` into a real `<aside>` that is a **direct child** of `<d-article>`, then numbers marker/aside pairs via `data-sidenote`. Distill-only; loaded only on distill.                                                                                                                                                                    |
+| `_plugins/include_code.rb`           | `{% include_code file="..." lang="julia" start=N end=M %}` — site-specific, no gem owns it.                                                                                                                                                                                                                                                                  |
+| `_plugins/markdown_alerts.rb`        | `{% alert note %}` block tag that renders markdown inside the alert.                                                                                                                                                                                                                                                                                         |
 
 If you add CSS or JS, extend these files — do not create `_sass/` or copy a gem's
 `_includes/`/`_layouts/` file unless there is genuinely no alternative. If you must shadow one,
@@ -96,6 +98,14 @@ so future gem updates flag drift.
 `site_assets.rb` builds the citation block because `al_folio_distill`'s render template ignores
 `page.citation` (only `al_folio_core`'s `post.liquid` honours it). If upstream fixes that, this
 hook becomes redundant; it guards on `language-bibtex` so it won't duplicate.
+
+Sidenotes are split across a Liquid tag and a script for two reasons that are easy to "fix" back
+into breakage: Distill positions a margin note with `grid-column: gutter`, which only applies to
+direct children of `<d-article>`, so an `<aside>` emitted inline (inside the annotated paragraph
+or list item) never reaches the margin — hence the runtime lift. And kramdown escapes raw block
+tags in an inline context, so the tag reduces the rendered note to span-level HTML (`</p><p>` →
+`<br><br>`) before emitting it. Numbering is done in JS rather than with a CSS counter because
+marker and aside end up in different branches of the tree.
 
 ## Post structure
 
@@ -126,6 +136,25 @@ Three ways a post embeds interactive content:
 Julia deps are the repo-root `Project.toml`/`Manifest.toml`; `src/Blog.jl` just loads them.
 Python deps are per-post `pyproject.toml` + `uv.lock` — there is no repo-wide Python environment.
 
+## CI
+
+Four workflows gate a push or PR to `main`; all four must be green:
+
+| Workflow            | What it runs                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `pre-commit.yml`    | `pre-commit` — prettier (`npx prettier . --write`) plus whitespace/YAML/large-file checks.   |
+| `upgrade-check.yml` | `bundle exec al-folio upgrade audit`, uploading `al-folio-upgrade-report.md` as an artifact. |
+| `broken-links.yml`  | lychee over every `.md`/`.html`, `fail: true`.                                               |
+| `deploy.yml`        | `jekyll build` (production) → PurgeCSS → GitHub Pages. Builds on PRs, deploys only on push.  |
+
+Locally: `npx prettier . --write` (or `npm run lint:prettier` to check without writing) and
+`pre-commit run --all-files`.
+
+The link checker's excludes live in two places — `.lycheeignore` (hosts that 403 bots, and the
+`${` pattern for URLs built in post JavaScript) and the `--exclude-path` list inlined in
+`broken-links.yml`. A new post whose links are Liquid-templated or runtime-built needs an entry in
+one of them.
+
 ## Gotchas
 
 - `{% include_code %}` slices a file by **absolute line number**. Editing `plots.jl` silently
@@ -136,6 +165,13 @@ Python deps are per-post `pyproject.toml` + `uv.lock` — there is no repo-wide 
   without re-fetching the source price data.
 - `_config.yml` excludes `_posts/**/*.ipynb` — notebooks are dev tooling, not site content.
 - PurgeCSS runs in the deploy workflow against `_site/assets/css/*.css`. Classes injected only at
-  runtime must be added to the `safelist` in `purgecss.config.js` or they get stripped.
+  runtime must be added to the `safelist` in `purgecss.config.js` or they get stripped. Its
+  content glob covers `_site/**/*.js` too, so a class that appears as a literal string in site JS
+  survives; one assembled from fragments at runtime does not. Only production builds purge, so a
+  missing safelist entry is invisible locally and only shows up on the deployed site.
+- A `{% sidenote %}` marker and its aside are paired **by document order**, not by id. If the two
+  counts ever diverge, `sidenotes.js` logs `[sidenotes] N marker(s) but M aside(s)` and everything
+  past the mismatch is misnumbered. Sidenotes do nothing outside a distill post — the script is
+  injected only there.
 - Generated HTML under `_posts/**` and `assets/**` is prettier-ignored; do not hand-format it.
 - Front matter dates are in the future relative to real time in this repo; that is intentional.

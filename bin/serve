@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Serve the site locally on http://127.0.0.1:8080 with live reload.
+#
+# Wraps the podman invocation documented in CLAUDE.md: rootless podman (Docker
+# needs root on this machine), :z for the SELinux relabel, and a container-local
+# destination so nothing lands in the host _site/.
+#
+# Drafts (`published: false`) are built by default -- that is the point of a
+# local preview. Pass --published to see the site as a visitor would.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+IMAGE=${IMAGE:-al-folio-local:v1.2}
+UNPUBLISHED=--unpublished
+[[ ${1:-} == --published ]] && UNPUBLISHED=
+
+podman image exists "$IMAGE" || {
+  echo "Building $IMAGE (first run only)..."
+  podman build --from docker.io/library/ruby:slim -t "$IMAGE" .
+}
+
+exec podman run --rm -p 127.0.0.1:8080:8080 -p 127.0.0.1:35729:35729 \
+  -v "$PWD":/srv/jekyll:z -w /srv/jekyll "$IMAGE" \
+  bash -lc "mkdir -p /tmp/_site && bundle exec jekyll serve \
+    --host 0.0.0.0 --port 8080 --livereload --force_polling \
+    $UNPUBLISHED --destination /tmp/_site"
