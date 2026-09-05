@@ -66,9 +66,9 @@ other. The HEMS is the central piece of the system.
 
 ### Assumptions
 
-To make the problem computationally feasible, we make a number of assumptions. These 
-assumptions are not necessarily unrealistic for a real system, but if they are not met, 
-the results of this study may not be applicable to your situation. The assumptions are 
+To make the problem computationally feasible, we make a number of assumptions. These
+assumptions are not necessarily unrealistic for a real system, but if they are not met,
+the results of this study may not be applicable to your situation. The assumptions are
 as follows:
 
 - The HEMS has perfect knowledge of the future. This means that it knows exactly what the
@@ -76,29 +76,40 @@ as follows:
   will be. In reality, this is not possible, but we can use forecasts to approximate this
   knowledge.
 - The HEMS has perfect control of the most important assets. This means that commands
-  that are sent to the EV, heatpump, battery and PV system are always executed perfectly. 
+  that are sent to the EV, heatpump, battery and PV system are always executed perfectly.
   In reality, this may not always be the case.
-- Simulating a 'real' EV charger is difficult without realitic departure / arrival times, 
-  so we assume a fixed schedule for the EV outside the weekend. During the weekend, the 
+- Simulating a 'real' EV charger is difficult without realitic departure / arrival times,
+  so we assume a fixed schedule for the EV outside the weekend. During the weekend, the
   EV is assumed to be at home all day.
 - We use a receding horizon controller, running at a fixed interval of 15 minutes. The
   horizon interval is also 15 minutes, and control actions are piecewise constant over
-  each interval. A power limit constraint is therefore a constraint over the 15-minute 
+  each interval. A power limit constraint is therefore a constraint over the 15-minute
   average power, and not on the instantaneous power. This can be unrealistic for loads
   that have a high peak power but low energy consumption over an interval.
 
 ## The Optimization Model
 
-Our controller is a linear program (LP) that optimizes the operation of the household 
+Our controller is a linear program (LP) that optimizes the operation of the household
 assets over a receding horizon. The LP is solved repeatedly, and the first control action
-is implemented. The LP is then solved again with updated information, and the process 
+is implemented. The LP is then solved again with updated information, and the process
 repeats.
+
+The diagram below shows how the window moves. Each solve looks $$W$$ intervals ahead but
+only the first $$S$$ intervals are ever executed; the rest of the plan exists to give the
+optimizer a reason to leave energy in the battery at the end of the step. The window then
+slides forward by $$S$$, the assets' end-of-step states become the initial conditions of
+the next solve, and the implemented pieces concatenate into the dispatch the household
+actually sees.
+
+<div class="l-page">
+  <figure>{% include_relative receding-horizon-diagram.svg %}</figure>
+</div>
 
 ### Notation
 
-We divide the horizon into $$n$$ intervals of $$\Delta$$ hours each, indexed by 
+We divide the horizon into $$n$$ intervals of $$\Delta$$ hours each, indexed by
 $$k = 1, \dots, n$$. The simulations in this article use $$\Delta = 0.25\,\mathrm{h}$$.
-All variables and parameters are indexed by $$k$$, the interval number. The following 
+All variables and parameters are indexed by $$k$$, the interval number. The following
 table lists the symbols used in the model, their meaning and their units.
 
 | Symbol                                          | Meaning                               | Unit  |

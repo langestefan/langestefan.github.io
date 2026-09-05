@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" width="760" height="360"
+     class="hems-figure" role="img"
+     aria-label="Receding horizon schedule: three successive solves, each optimising over a window of W intervals but implementing only the first S intervals, with the window sliding forward by S each time and the implemented pieces concatenating into the realised dispatch.">
+  <defs>
+    <marker id="rh-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="hf-arrow-power"/>
+    </marker>
+  </defs>
+
+  <!-- dimension brackets: step S and horizon W -->
+  <text x="150" y="20" class="hf-t1">S</text>
+  <line x1="110" y1="30" x2="190" y2="30" class="hf-box"/>
+  <line x1="110" y1="25" x2="110" y2="35" class="hf-box"/>
+  <line x1="190" y1="25" x2="190" y2="35" class="hf-box"/>
+
+  <text x="270" y="44" class="hf-t1">W</text>
+  <line x1="110" y1="50" x2="430" y2="50" class="hf-box"/>
+  <line x1="110" y1="45" x2="110" y2="55" class="hf-box"/>
+  <line x1="430" y1="45" x2="430" y2="55" class="hf-box"/>
+
+  <!-- guides marking t, t+S, t+2S, t+3S; drawn first so the bars paint over them -->
+  <line x1="110" y1="56" x2="110" y2="304" class="hf-box" stroke-dasharray="4 5"/>
+  <line x1="190" y1="56" x2="190" y2="304" class="hf-box" stroke-dasharray="4 5"/>
+  <line x1="270" y1="56" x2="270" y2="304" class="hf-box" stroke-dasharray="4 5"/>
+  <line x1="350" y1="56" x2="350" y2="304" class="hf-box" stroke-dasharray="4 5"/>
+
+  <!-- solve 1 -->
+  <text x="58" y="90" class="hf-t1">solve 1</text>
+  <rect x="110" y="64" width="80" height="42" class="hf-box hf-fill-bess"/>
+  <rect x="190" y="64" width="240" height="42" class="hf-box hf-fill-loads"/>
+  <text x="150" y="89" class="hf-lbl" text-anchor="middle">implement</text>
+  <text x="310" y="89" class="hf-lbl" text-anchor="middle">planned, then discarded</text>
+
+  <!-- solve 2 -->
+  <text x="58" y="150" class="hf-t1">solve 2</text>
+  <rect x="190" y="124" width="80" height="42" class="hf-box hf-fill-bess"/>
+  <rect x="270" y="124" width="240" height="42" class="hf-box hf-fill-loads"/>
+
+  <!-- solve 3 -->
+  <text x="58" y="210" class="hf-t1">solve 3</text>
+  <rect x="270" y="184" width="80" height="42" class="hf-box hf-fill-bess"/>
+  <rect x="350" y="184" width="240" height="42" class="hf-box hf-fill-loads"/>
+
+  <!-- what actually gets executed -->
+  <line x1="150" y1="106" x2="150" y2="262" class="hf-power" marker-end="url(#rh-arrow)"/>
+  <line x1="230" y1="166" x2="230" y2="262" class="hf-power" marker-end="url(#rh-arrow)"/>
+  <line x1="310" y1="226" x2="310" y2="262" class="hf-power" marker-end="url(#rh-arrow)"/>
+
+  <rect x="110" y="264" width="80" height="36" class="hf-box hf-fill-hems"/>
+  <rect x="190" y="264" width="80" height="36" class="hf-box hf-fill-hems"/>
+  <rect x="270" y="264" width="80" height="36" class="hf-box hf-fill-hems"/>
+  <text x="230" y="287" class="hf-t1">realised dispatch</text>
+  <line x1="352" y1="282" x2="404" y2="282" class="hf-power" stroke-dasharray="5 5" marker-end="url(#rh-arrow)"/>
+
+  <!-- time axis -->
+  <text x="110" y="330" class="hf-lbl" text-anchor="middle">t</text>
+  <text x="190" y="330" class="hf-lbl" text-anchor="middle">t + S</text>
+  <text x="270" y="330" class="hf-lbl" text-anchor="middle">t + 2S</text>
+  <text x="350" y="330" class="hf-lbl" text-anchor="middle">t + 3S</text>
+  <line x1="110" y1="340" x2="430" y2="340" class="hf-power" marker-end="url(#rh-arrow)"/>
+  <text x="440" y="344" class="hf-lbl">time</text>
+
+  <!-- legend -->
+  <rect x="444" y="248" width="296" height="96" rx="2" class="hf-legend"/>
+  <rect x="458" y="262" width="24" height="12" class="hf-box hf-fill-bess"/>
+  <text x="492" y="272" class="hf-lbl">implemented — the first S intervals</text>
+  <rect x="458" y="286" width="24" height="12" class="hf-box hf-fill-loads"/>
+  <text x="492" y="296" class="hf-lbl">planned, then thrown away</text>
+  <rect x="458" y="310" width="24" height="12" class="hf-box hf-fill-hems"/>
+  <text x="492" y="320" class="hf-lbl">realised dispatch</text>
+  <text x="458" y="338" class="hf-lbl">W = horizon length, S = step, S ≤ W</text>
+</svg>
