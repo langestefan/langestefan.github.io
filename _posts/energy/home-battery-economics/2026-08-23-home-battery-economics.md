@@ -11,8 +11,9 @@ featured: true
 published: false
 toc:
   - name: Summary
-  - name: The Model
-  - name: The Dispatch Problem
+  - name: What is a HEMS?
+  - name: The Optimization Model
+  - name: Constraints
   - name: Asset Models
   - name: Exogenous Inputs
   - name: Prices, Tariffs and Settlement
@@ -66,10 +67,10 @@ other. The HEMS is the central piece of the system.
 
 ### Assumptions
 
-To make the problem computationally feasible, we make a number of assumptions. These
-assumptions are not necessarily unrealistic for a real system, but if they are not met,
-the results of this study may not be applicable to your situation. The assumptions are
-as follows:
+To make the problem computationally feasible, we make a number of simplifying
+assumptions, some of which are also challenged directly in this article. These
+assumptions are not necessarily realistic for a real system, so be cautious in interpreting
+the results. The assumptions are as follows:
 
 - The HEMS has perfect knowledge of the future. This means that it knows exactly what the
   household load will be, what the PV production will be, and what the electricity prices
@@ -95,9 +96,9 @@ is implemented. The LP is then solved again with updated information, and the pr
 repeats.
 
 The diagram below shows how the window moves. Each solve looks $$W$$ intervals ahead but
-only the first interval is ever executed. After executing the first step the window then 
-slides forward by 1. Whatever the assets' state at the end of the previous step was 
-becomes the initial conditions for the current step. We repeat this process until we hit 
+only the first interval is ever executed. After executing the first step the window then
+slides forward by 1. Whatever the assets' state at the end of the previous step was
+becomes the initial conditions for the current step. We repeat this process until we hit
 the end of the simulation.
 
 <div class="l-page">
@@ -108,23 +109,100 @@ the end of the simulation.
 
 We divide the horizon into $$n$$ intervals of $$\Delta$$ hours each, indexed by
 $$k = 1, \dots, n$$. The simulations in this article use $$\Delta = 0.25\,\mathrm{h}$$.
-All variables and parameters are indexed by $$k$$, the interval number. The following
-table lists the symbols used in the model, their meaning and their units.
+All variables and parameters are indexed by $$k$$, the interval number.
 
-| Symbol                                          | Meaning                               | Unit  |
-| :---------------------------------------------- | :------------------------------------ | :---- |
-| $$\Delta$$                                      | interval length                       | h     |
-| $$g^{\mathrm{imp}}_k, g^{\mathrm{exp}}_k$$      | energy taken from / fed into the grid | kW    |
-| $$P^{\mathrm{pv}}_k$$                           | PV power available before curtailment | kW    |
-| $$c_k$$                                         | PV power curtailed                    | kW    |
-| $$L_k$$                                         | household base load                   | kW    |
-| $$\pi^{\mathrm{buy}}_k, \pi^{\mathrm{sell}}_k$$ | dispatch price signal                 | €/kWh |
-| $$\theta_k$$                                    | ambient temperature                   | °C    |
-| $$G_k$$                                         | global horizontal irradiance          | W/m²  |
+#### Index sets
+
+Index sets are used to assign unique numbers to individual intervals and assets.
+
+| Symbol                | Meaning                                           |
+| :-------------------- | :------------------------------------------------ |
+| $$k = 1, \dots, n$$   | interval index; the horizon is $$n$$ intervals    |
+| $$a \in \mathcal{A}$$ | controllable assets — battery, EV, heat pump, DHW |
+
+#### Variables
+
+These are the decision variables that the optimizer can change to select an optimal 
+schedule.
+
+| Symbol                                     | Meaning                                  | Unit |
+| :----------------------------------------- | :--------------------------------------- | :--- |
+| $$g^{\mathrm{imp}}_k, g^{\mathrm{exp}}_k$$ | energy taken from / fed into the grid    | kW   |
+| $$c_k$$                                    | PV power curtailed                       | kW   |
+| $$u_{a,k}, v_{a,k}$$                       | consumption / production of asset $$a$$  | kW   |
+| $$C_a$$                                    | objective contribution of asset $$a$$    | €    |
+| $$J^{\mathrm{tb}}$$                        | tie-break term, favouring earlier action | €    |
+
+#### Parameters
+
+Fixed data that is known to the optimizer.
+
+| Symbol                                          | Meaning                               | Unit               |
+| :---------------------------------------------- | :------------------------------------ | :----------------- |
+| $$\Delta$$                                      | interval length                       | h                  |
+| $$W$$                                           | optimization window length            | intervals          |
+| $$P^{\mathrm{conn}}$$                           | grid connection limit                 | kW                 |
+| $$P^{\mathrm{pv}}_k$$                           | PV power available before curtailment | kW                 |
+| $$L_k$$                                         | household base load                   | kW                 |
+| $$\pi^{\mathrm{buy}}_k, \pi^{\mathrm{sell}}_k$$ | dispatch price signal                 | €/kWh              |
+| $$\theta_k$$                                    | ambient temperature                   | °C                 |
+| $$G_k$$                                         | global horizontal irradiance          | W/m²               |
+| $$\varepsilon_{\mathrm{tb}}$$                   | tie-break coefficient, $$10^{-6}$$    | €/kWh per interval |
+| $$\varepsilon_C$$                               | cost weight when minimizing imports   | –                  |
+
+### The objective
+
+For our controller to find an optimal schedule, we have to first tell it what our goal is.
+Typically we want to minimize the cost of our electricity consumption over the planning
+horizon, but we can also minimize the total electricity imported from the grid if we
+care about that. Personally, I choose to minimize total cost, because that is the more
+rational choice and often coincides with lower CO2 emissions anyway.
+
+#### Minimizing cost
+
+$$
+\min \quad
+\sum_{k=1}^{n} \Delta \big( \pi^{\mathrm{buy}}_k g^{\mathrm{imp}}_k
+- \pi^{\mathrm{sell}}_k g^{\mathrm{exp}}_k \big)
+\;+\; \sum_{a \in \mathcal{A}} C_a
+\;+\; J^{\mathrm{tb}}
+$$
+
+Only the bill counts; imported kilowatt-hours matter through their price alone.
+
+#### Minimizing imports
+
+$$
+\min \quad
+\sum_{k=1}^{n} \Delta \Big[\, g^{\mathrm{imp}}_k
+\;+\; \varepsilon_C \big( \pi^{\mathrm{buy}}_k g^{\mathrm{imp}}_k
+- \pi^{\mathrm{sell}}_k g^{\mathrm{exp}}_k \big) \Big]
+\;+\; \varepsilon_C \sum_{a \in \mathcal{A}} C_a
+\;+\; J^{\mathrm{tb}},
+\qquad \varepsilon_C = 10^{-3}
+$$
+
+Every kilowatt-hour off the grid weighs the same whatever it costs, with money kept at
+$$\varepsilon_C$$ only to pick the cheapest of the many schedules that import equally
+little. Self-consumption is not imposed here, it _falls out_: charging the battery from
+the grid is itself an import, and a round trip loses energy, so it can never avoid as much
+later import as it costs now.
+
+#### Common terms
+
+$$C_a$$ is the asset's own contribution — throughput cost, comfort penalties, terminal
+storage value — defined per asset below. $$J^{\mathrm{tb}}$$ breaks ties towards acting
+**earlier**:
+
+$$
+J^{\mathrm{tb}} = \varepsilon_{\mathrm{tb}}\, \Delta \sum_{k=1}^{n} (k-1)
+\Big( g^{\mathrm{imp}}_k + \sum_{a \in \mathcal{A}} u_{a,k} \Big),
+\qquad \varepsilon_{\mathrm{tb}} = 10^{-6}\ \text{€/kWh per interval of delay}.
+$$
 
 ---
 
-## The Dispatch Problem
+## Constraints
 
 ### The meter balance
 
@@ -154,62 +232,22 @@ connection. Note that import and export are separate non-negative variables rath
 signed flow: they are priced differently, so the sign matters to the objective and cannot be
 recovered afterwards.
 
-### The objective
-
-The controller minimises a weighted sum of imported energy and money over the window:
-
-$$
-\min \quad
-\sum_{k=1}^{n} \Delta \Big[\, w_E\, g^{\mathrm{imp}}_k
-\;+\; w_C \big( \pi^{\mathrm{buy}}_k g^{\mathrm{imp}}_k - \pi^{\mathrm{sell}}_k g^{\mathrm{exp}}_k \big) \Big]
-\;+\; w_C \sum_{a \in \mathcal{A}} C_a
-\;+\; J^{\mathrm{tb}}
-$$
-
-where $$C_a$$ is the asset's own objective contribution — throughput cost, comfort
-penalties, terminal storage value — defined per asset below.
-
-A **strategy** is nothing more than the pair $$(w_E, w_C)$$. The model is otherwise
-identical, which is the point: two strategies are comparable because nothing else differs.
-
-$$
-\text{Economic:} \quad (w_E, w_C) = (0, 1),
-\qquad\qquad
-\text{Green:} \quad (w_E, w_C) = (1, 10^{-3}).
-$$
-
-Under the green strategy self-consumption is not imposed, it _falls out_. Charging the
-battery from the grid is itself an import, and a round trip loses energy, so it can never
-avoid as much later import as it costs now — an import-minimising optimizer therefore never
-grid-charges. The small cost weight is a tie-break that picks the cheapest of the many
-schedules that import equally little.
-
-The last term breaks ties towards acting **earlier**:
-
-$$
-J^{\mathrm{tb}} = \varepsilon_{\mathrm{tb}}\, \Delta \sum_{k=1}^{n} (k-1)
-\Big( g^{\mathrm{imp}}_k + \sum_{a \in \mathcal{A}} u_{a,k} \Big),
-\qquad \varepsilon_{\mathrm{tb}} = 10^{-6}\ \text{€/kWh per interval of delay}.
-$$
-
-{% sidenote %}This is not cosmetic. Step-holding an hourly price onto quarter-hours makes
-more than half of 2025's adjacent intervals _exactly_ equal, so the LP genuinely has many
-optima and the solver picks one arbitrarily. The controller cannot tell the difference; the
-settlement engine can, because it reads the flows rather than the objective. Its size is
-squeezed from both ends — large enough to clear the solver's dual-feasibility tolerance,
-small enough to stay below the smallest real price difference between neighbouring
-intervals.{% endsidenote %}
-
 ### Receding horizon
 
 The problem above is solved repeatedly on a moving window rather than once over the year.
-With a window of $$W$$ intervals and a step of $$S \leq W$$ intervals, the controller solves
-over $$[t,\, t + W)$$, implements only the first $$S$$ intervals, carries each asset's
-terminal state into the next solve, and advances to $$t + S$$.
+The controller solves over $$[k,\, k + W)$$, implements the first interval only, carries
+each asset's end-of-interval state into the next solve, and advances to $$k + 1$$. Every
+run in this article uses $$W = 96$$ intervals — a 24-hour window — so a year is 35 040
+solves rather than one.
 
-The overlap is what stops the optimizer emptying its storage at every window boundary. A
-year at $$W = 48\,\mathrm{h}$$ and $$S = 24\,\mathrm{h}$$ is 366 solves; the realistic
-controller, re-optimising every quarter-hour ($$S = 1$$), is 35 040.
+Re-optimising every interval is what a real controller does, and it changes what the
+lookahead is for. Nothing past the first interval is ever executed, so $$W$$ is not a
+commitment to a plan; it is only the distance the first decision has to see before it can
+be made well. A battery deciding whether to charge tonight needs tomorrow's prices, and
+that is the whole of it. {% sidenote %}Stepping by a whole window instead — the library's
+default of a 24-hour step inside a 48-hour window — collapses the year to 366 solves and
+runs in seconds, which is useful while developing but is not a controller anyone could
+build.{% endsidenote %}
 
 ### Degeneracy and the exclusivity option
 

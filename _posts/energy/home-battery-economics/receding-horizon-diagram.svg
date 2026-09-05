@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" width="760" height="360"
      class="hems-figure" role="img"
-     aria-label="Receding horizon schedule: three successive solves, each optimising over a window of W intervals but implementing only the first S intervals, with the window sliding forward by S each time and the implemented pieces concatenating into the realised dispatch.">
+     aria-label="Receding horizon schedule: three successive solves, each optimising over a window of W intervals but implementing only the first interval, with the window sliding forward one interval each time and the implemented intervals concatenating into the realised dispatch.">
   <defs>
     <marker id="rh-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" class="hf-arrow-power"/>
     </marker>
   </defs>
 
-  <!-- dimension brackets: step S and horizon W -->
-  <text x="150" y="20" class="hf-t1">S</text>
+  <!-- dimension brackets: the implemented interval and the horizon W -->
+  <text x="150" y="20" class="hf-lbl" text-anchor="middle">1 interval</text>
   <line x1="110" y1="30" x2="190" y2="30" class="hf-box"/>
   <line x1="110" y1="25" x2="110" y2="35" class="hf-box"/>
   <line x1="190" y1="25" x2="190" y2="35" class="hf-box"/>
@@ -53,10 +53,10 @@
   <line x1="352" y1="282" x2="404" y2="282" class="hf-power" stroke-dasharray="5 5" marker-end="url(#rh-arrow)"/>
 
   <!-- time axis, spanning the full horizon of the last solve -->
-  <text x="110" y="330" class="hf-lbl" text-anchor="middle">t</text>
-  <text x="190" y="330" class="hf-lbl" text-anchor="middle">t + S</text>
-  <text x="270" y="330" class="hf-lbl" text-anchor="middle">t + 2S</text>
-  <text x="350" y="330" class="hf-lbl" text-anchor="middle">t + 3S</text>
+  <text x="110" y="330" class="hf-lbl" text-anchor="middle">k</text>
+  <text x="190" y="330" class="hf-lbl" text-anchor="middle">k + 1</text>
+  <text x="270" y="330" class="hf-lbl" text-anchor="middle">k + 2</text>
+  <text x="350" y="330" class="hf-lbl" text-anchor="middle">k + 3</text>
   <line x1="110" y1="340" x2="590" y2="340" class="hf-power" marker-end="url(#rh-arrow)"/>
   <text x="602" y="344" class="hf-lbl">time</text>
 
