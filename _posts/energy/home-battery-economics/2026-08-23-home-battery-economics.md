@@ -95,11 +95,10 @@ is implemented. The LP is then solved again with updated information, and the pr
 repeats.
 
 The diagram below shows how the window moves. Each solve looks $$W$$ intervals ahead but
-only the first $$S$$ intervals are ever executed; the rest of the plan exists to give the
-optimizer a reason to leave energy in the battery at the end of the step. The window then
-slides forward by $$S$$, the assets' end-of-step states become the initial conditions of
-the next solve, and the implemented pieces concatenate into the dispatch the household
-actually sees.
+only the first interval is ever executed. After executing the first step the window then 
+slides forward by 1. Whatever the assets' state at the end of the previous step was 
+becomes the initial conditions for the current step. We repeat this process until we hit 
+the end of the simulation.
 
 <div class="l-page">
   <figure>{% include_relative receding-horizon-diagram.svg %}</figure>
