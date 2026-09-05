@@ -10,7 +10,7 @@ date: 2026-08-23
 featured: true
 published: false
 toc:
-  - name: Management Summary
+  - name: Summary
   - name: The Model
   - name: The Dispatch Problem
   - name: Asset Models
@@ -27,26 +27,25 @@ authors:
       name: TU Eindhoven
 ---
 
-## Management Summary
+## Summary
 
 ---
 
-## The Model
-
-### What is a HEMS?
+## What is a HEMS?
 
 Before we explain how the model is constructed, we need to understand what a HEMS is. If
 you are already familiar with the concept, feel free to skip this section.
 
 HEMS stands for Home Energy Management System. It is an abstract term that can mean many
 things, which makes it a confusing concept. In this article, we will use the term HEMS
-to refer to a system that fulfills our requirements for this study.
+to refer to a system that fulfills our (perhaps specific) requirements for this study,
+explained in this section.
 
 A HEMS is a system that has monitoring, control and forecast capabilities and can deploy
 these in such a way that they are complimentary functions and new capabilities emerge.
 For example, a HEMS can forecast household energy consumption if proper monitoring is in
-place. It can then use those forecasts to control assets, considering future demands. A
-non-exhaustive list of the capabilities of a HEMS is as follows:
+place. It can then use those forecasts to control assets, considering future energy
+flows in the home. A non-exhaustive list of the capabilities of a HEMS is as follows:
 
 - Monitor both energy consumption and production at the interface to the grid (i.e. the
   electricity meter)
@@ -56,8 +55,7 @@ non-exhaustive list of the capabilities of a HEMS is as follows:
   consider here only the "big 4": the battery, the solar PV system, the heat pump and the
   electric vehicle. {% sidenote %}Not every household needs to have all of these assets.
   Control of PV and heat pump is not strictly necessary for optimal operation of the HEMS.
-  A HEMS also does not strictly need a battery to be able to control the other assets.
-  {% endsidenote %}
+  A HEMS also does not strictly need a battery to be able to control the other assets.{% endsidenote %}
 
 The diagram below shows all the pieces of the HEMS and how they interact with each
 other. The HEMS is the central piece of the system.
@@ -66,13 +64,42 @@ other. The HEMS is the central piece of the system.
   <figure>{% include_relative hems-block-diagram.svg %}</figure>
 </div>
 
+### Assumptions
+
+To make the problem computationally feasible, we make a number of assumptions. These 
+assumptions are not necessarily unrealistic for a real system, but if they are not met, 
+the results of this study may not be applicable to your situation. The assumptions are 
+as follows:
+
+- The HEMS has perfect knowledge of the future. This means that it knows exactly what the
+  household load will be, what the PV production will be, and what the electricity prices
+  will be. In reality, this is not possible, but we can use forecasts to approximate this
+  knowledge.
+- The HEMS has perfect control of the most important assets. This means that commands
+  that are sent to the EV, heatpump, battery and PV system are always executed perfectly. 
+  In reality, this may not always be the case.
+- Simulating a 'real' EV charger is difficult without realitic departure / arrival times, 
+  so we assume a fixed schedule for the EV outside the weekend. During the weekend, the 
+  EV is assumed to be at home all day.
+- We use a receding horizon controller, running at a fixed interval of 15 minutes. The
+  horizon interval is also 15 minutes, and control actions are piecewise constant over
+  each interval. A power limit constraint is therefore a constraint over the 15-minute 
+  average power, and not on the instantaneous power. This can be unrealistic for loads
+  that have a high peak power but low energy consumption over an interval.
+
+## The Optimization Model
+
+Our controller is a linear program (LP) that optimizes the operation of the household 
+assets over a receding horizon. The LP is solved repeatedly, and the first control action
+is implemented. The LP is then solved again with updated information, and the process 
+repeats.
+
 ### Notation
 
-Everything below lives on a uniform time grid: the horizon is divided into $$n$$ intervals
-of $$\Delta$$ hours each, indexed by $$k = 1, \dots, n$$. The simulations in this article
-use $$\Delta = 0.25\,\mathrm{h}$$, matching the 15-minute settlement period the Dutch
-market moved to. Powers are in kW and energies in kWh, so $$\Delta$$ is the only
-conversion factor that ever appears.
+We divide the horizon into $$n$$ intervals of $$\Delta$$ hours each, indexed by 
+$$k = 1, \dots, n$$. The simulations in this article use $$\Delta = 0.25\,\mathrm{h}$$.
+All variables and parameters are indexed by $$k$$, the interval number. The following 
+table lists the symbols used in the model, their meaning and their units.
 
 | Symbol                                          | Meaning                               | Unit  |
 | :---------------------------------------------- | :------------------------------------ | :---- |
@@ -84,13 +111,6 @@ conversion factor that ever appears.
 | $$\pi^{\mathrm{buy}}_k, \pi^{\mathrm{sell}}_k$$ | dispatch price signal                 | €/kWh |
 | $$\theta_k$$                                    | ambient temperature                   | °C    |
 | $$G_k$$                                         | global horizontal irradiance          | W/m²  |
-
-Each controllable asset $$a \in \mathcal{A}$$ contributes its own decision variables and
-constraints, and exposes exactly two things to the rest of the model: a consumption
-$$u_{a,k} \geq 0$$ and a production $$v_{a,k} \geq 0$$, both in kW. PV production and the
-base load are _not_ assets — they are exogenous data. An asset is something the optimizer
-decides about. {% sidenote %}This split is what keeps a sizing sweep cheap: prices, weather
-and base load are computed once and reused for every candidate battery.{% endsidenote %}
 
 ---
 
